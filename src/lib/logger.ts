@@ -1,7 +1,8 @@
-/* eslint-disable no-console */
 /*
  * Dev/prod-aware logger with naive PII redaction.
- * Use this everywhere instead of console.* — banned by ESLint in committed code.
+ * Use this everywhere instead of console.* — the only file allowed to call
+ * console.* directly. ESLint no-console rule lands in a later commit and will
+ * have an inline exception here.
  */
 
 const REDACT_KEYS = new Set([
