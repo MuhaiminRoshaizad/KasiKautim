@@ -28,6 +28,31 @@ const sizes: Record<Size, string> = {
   lg: "h-14 px-7 text-lg",
 };
 
+/**
+ * Returns the class string used by Button. Exported so Link / anchor elements
+ * can adopt button styling without needing a Slot/asChild pattern.
+ */
+export function buttonClassName({
+  variant = "primary",
+  size = "md",
+  className,
+}: {
+  variant?: Variant;
+  size?: Size;
+  className?: string;
+} = {}): string {
+  return cn(
+    "inline-flex items-center justify-center gap-2 font-medium tracking-tight",
+    "transition-colors duration-150 ease-out",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+    "disabled:opacity-50 disabled:cursor-not-allowed",
+    "rounded-sm shadow-[0_1px_0_rgba(0,0,0,0.04)]",
+    variants[variant],
+    sizes[size],
+    className,
+  );
+}
+
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   function Button(
     { variant = "primary", size = "md", className, type = "button", ...rest },
@@ -37,17 +62,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         type={type}
-        className={cn(
-          "inline-flex items-center justify-center gap-2 font-medium tracking-tight",
-          "transition-colors duration-150 ease-out",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-          "disabled:opacity-50 disabled:cursor-not-allowed",
-          // Receipt-paper aesthetic: slight asymmetry, no rounded-full.
-          "rounded-sm shadow-[0_1px_0_rgba(0,0,0,0.04)]",
-          variants[variant],
-          sizes[size],
-          className,
-        )}
+        className={buttonClassName({ variant, size, className })}
         {...rest}
       />
     );
