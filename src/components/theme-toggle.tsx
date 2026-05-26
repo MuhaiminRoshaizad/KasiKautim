@@ -18,6 +18,11 @@ export function ThemeToggle({ className }: { className?: string }) {
   const [resolved, setResolved] = useState<Resolved>("light");
 
   useEffect(() => {
+    // Sync with the <html data-theme> the ThemeBootstrap script set before
+    // hydration. The new react-hooks/set-state-in-effect rule flags this, but
+    // there's no clean alternative: server can't know the user's preference,
+    // and useSyncExternalStore would need a MutationObserver for one read.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setResolved(readInitial());
   }, []);
 
