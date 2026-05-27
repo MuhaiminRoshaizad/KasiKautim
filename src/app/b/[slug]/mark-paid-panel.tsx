@@ -1,11 +1,18 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import { Check, Loader2, Trash2, Upload } from "lucide-react";
 
 import { Button } from "@/components/button";
 import { InkStamp } from "@/components/ink-stamp";
+import { cn } from "@/lib/cn";
 import { markPaid, type MarkPaidState } from "@/actions/members";
+import {
+  uploadProof,
+  type UploadProofState,
+} from "@/actions/upload-proof";
+import type { PaymentMethod } from "@/types/schemas";
 
 interface MarkPaidPanelProps {
   token: string;
@@ -18,7 +25,20 @@ interface MarkPaidPanelProps {
   amountOwedCents?: number;
 }
 
-const INITIAL: MarkPaidState = { ok: null, message: "", paidAt: null };
+const INITIAL_PAID: MarkPaidState = { ok: null, message: "", paidAt: null };
+const INITIAL_UPLOAD: UploadProofState = { ok: null, message: "" };
+
+const METHOD_OPTIONS: { value: PaymentMethod | ""; label: string }[] = [
+  { value: "", label: "Pick one (optional)" },
+  { value: "duitnow", label: "DuitNow" },
+  { value: "tng", label: "Touch 'n Go eWallet" },
+  { value: "maybank2u", label: "Maybank2u" },
+  { value: "cash", label: "Cash" },
+  { value: "other", label: "Other" },
+];
+
+const FIELD =
+  "h-11 w-full border border-border bg-surface px-3 font-sans text-sm text-foreground placeholder:text-foreground-faint focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 focus:ring-offset-background";
 
 export function MarkPaidPanel({
   token,
@@ -26,14 +46,55 @@ export function MarkPaidPanel({
   initialPaidAt,
   organizerName,
   canPay = true,
-  amountOwedCents,
 }: MarkPaidPanelProps) {
-  const [state, formAction, pending] = useActionState(markPaid, INITIAL);
+  const [state, formAction, pending] = useActionState(markPaid, INITIAL_PAID);
   const reduced = useReducedMotion();
 
-  // Derive from action state (no mirror useState — keeps react-hooks/set-state-in-effect happy).
   const paid = initiallyPaid || state.ok === true;
   const paidAt = state.paidAt ?? initialPaidAt;
+
+  // Audit fields (recipient-side state until "I've paid" submit)
+  const [method, setMethod] = useState<PaymentMethod | "">("");
+  const [note, setNote] = useState("");
+
+  // Proof upload state — auto-uploads on file pick so user sees the result.
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [proofPreviewUrl, setProofPreviewUrl] = useState<string | null>(null);
+  const [proofPath, setProofPath] = useState<string | null>(null);
+  const [proofState, setProofState] =
+    useState<UploadProofState>(INITIAL_UPLOAD);
+  const [isUploading, startUpload] = useTransition();
+
+  useEffect(() => {
+    // Revoke object URLs on cleanup to avoid leaks.
+    return () => {
+      if (proofPreviewUrl) URL.revokeObjectURL(proofPreviewUrl);
+    };
+  }, [proofPreviewUrl]);
+
+  const handleFile = (file: File) => {
+    if (proofPreviewUrl) URL.revokeObjectURL(proofPreviewUrl);
+    setProofPreviewUrl(URL.createObjectURL(file));
+    setProofPath(null);
+    setProofState(INITIAL_UPLOAD);
+
+    const fd = new FormData();
+    fd.append("token", token);
+    fd.append("image", file);
+    startUpload(async () => {
+      const result = await uploadProof(INITIAL_UPLOAD, fd);
+      setProofState(result);
+      if (result.ok && result.proofPath) setProofPath(result.proofPath);
+    });
+  };
+
+  const clearProof = () => {
+    if (proofPreviewUrl) URL.revokeObjectURL(proofPreviewUrl);
+    setProofPreviewUrl(null);
+    setProofPath(null);
+    setProofState(INITIAL_UPLOAD);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   if (paid) {
     return (
@@ -64,13 +125,63 @@ export function MarkPaidPanel({
   return (
     <form action={formAction} className="flex flex-col gap-3">
       <input type="hidden" name="token" value={token} />
+      {/* Hidden inputs carry the controlled state into the action FormData. */}
+      <input type="hidden" name="method" value={method} />
+      <input type="hidden" name="note" value={note} />
+      <input type="hidden" name="proofPath" value={proofPath ?? ""} />
+
+      <label className="flex flex-col gap-1.5">
+        <span className="text-[11px] font-medium uppercase tracking-widest text-foreground-soft">
+          Payment method (optional)
+        </span>
+        <select
+          value={method}
+          onChange={(e) => setMethod(e.target.value as PaymentMethod | "")}
+          disabled={pending || !canPay}
+          className={FIELD}
+          aria-label="Payment method"
+        >
+          {METHOD_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="flex flex-col gap-1.5">
+        <span className="text-[11px] font-medium uppercase tracking-widest text-foreground-soft">
+          Reference / note (optional)
+        </span>
+        <input
+          type="text"
+          value={note}
+          onChange={(e) => setNote(e.target.value.slice(0, 120))}
+          disabled={pending || !canPay}
+          maxLength={120}
+          placeholder="e.g. DuitNow ref ABC123"
+          className={FIELD}
+        />
+      </label>
+
+      <ProofPicker
+        canPick={!pending && canPay}
+        previewUrl={proofPreviewUrl}
+        proofPath={proofPath}
+        isUploading={isUploading}
+        errorMessage={proofState.ok === false ? proofState.message : null}
+        fileInputRef={fileInputRef}
+        onFile={handleFile}
+        onClear={clearProof}
+      />
+
       <Button
         type="submit"
-        disabled={pending || !canPay}
+        disabled={pending || !canPay || isUploading}
         size="lg"
         className="w-full font-display uppercase tracking-widest"
       >
-        {pending ? "Confirming..." : "I've paid"}
+        {pending ? "Confirming..." : isUploading ? "Uploading proof..." : "I've paid"}
       </Button>
       {state.ok === false ? (
         <p role="alert" className="text-center text-sm text-stamp">
@@ -80,10 +191,109 @@ export function MarkPaidPanel({
       <p className="text-center text-[11px] text-foreground-faint">
         {!canPay
           ? "Tap items above first to compute your share."
-          : amountOwedCents
-            ? "Tap after you transfer. Organizer gets notified instantly."
-            : "Tap after you transfer. Organizer gets notified instantly."}
+          : "Tap after you transfer. Organizer gets notified instantly."}
       </p>
     </form>
+  );
+}
+
+// ---------- Proof upload sub-component ----------
+
+interface ProofPickerProps {
+  canPick: boolean;
+  previewUrl: string | null;
+  proofPath: string | null;
+  isUploading: boolean;
+  errorMessage: string | null;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  onFile: (file: File) => void;
+  onClear: () => void;
+}
+
+function ProofPicker({
+  canPick,
+  previewUrl,
+  proofPath,
+  isUploading,
+  errorMessage,
+  fileInputRef,
+  onFile,
+  onClear,
+}: ProofPickerProps) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-[11px] font-medium uppercase tracking-widest text-foreground-soft">
+        Proof of transfer (optional)
+      </span>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onFile(file);
+        }}
+      />
+
+      {previewUrl ? (
+        <div className="flex items-start gap-3 border border-border bg-surface p-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={previewUrl}
+            alt="Payment proof preview"
+            className="h-16 w-16 shrink-0 object-cover"
+          />
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <div className="flex items-center gap-2 text-xs">
+              {isUploading ? (
+                <>
+                  <Loader2 size={12} className="animate-spin text-foreground-soft" aria-hidden />
+                  <span className="text-foreground-soft">Uploading...</span>
+                </>
+              ) : proofPath ? (
+                <>
+                  <Check size={12} className="text-ringgit" aria-hidden />
+                  <span className="text-ringgit">Uploaded</span>
+                </>
+              ) : errorMessage ? (
+                <span className="text-stamp" role="alert">
+                  {errorMessage}
+                </span>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              onClick={onClear}
+              disabled={!canPick}
+              className="inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-widest text-foreground-soft hover:text-stamp"
+            >
+              <Trash2 size={11} aria-hidden />
+              Remove
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          disabled={!canPick}
+          onClick={() => fileInputRef.current?.click()}
+          className={cn(
+            "inline-flex h-11 items-center justify-center gap-2 border border-dashed border-border bg-surface/60 px-4 text-sm font-medium text-foreground-soft transition-colors hover:bg-surface-deep",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+            "disabled:cursor-not-allowed disabled:opacity-60",
+          )}
+        >
+          <Upload size={14} aria-hidden />
+          Upload screenshot
+        </button>
+      )}
+      {!previewUrl && errorMessage ? (
+        <p role="alert" className="text-xs text-stamp">
+          {errorMessage}
+        </p>
+      ) : null}
+    </div>
   );
 }
