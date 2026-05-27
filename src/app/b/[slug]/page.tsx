@@ -169,25 +169,32 @@ async function MemberView({
   bill: PublicBillRpc;
 }) {
   const supabase = await createSupabaseServerClient();
-  const { data: member } = await supabase
-    .rpc("get_member_by_token", { p_token: token })
-    .maybeSingle<MemberByTokenRpc>();
+
+  // The three queries we need for the member view: identify the member,
+  // log the view, and (only for item-mode bills) load the full members
+  // list for co-claimer chips. None of them depend on each other's
+  // results, so we run them in parallel instead of three serial awaits.
+  const isItemMode = bill.split_mode === "item";
+  const [memberResult, membersResult] = await Promise.all([
+    supabase
+      .rpc("get_member_by_token", { p_token: token })
+      .maybeSingle<MemberByTokenRpc>(),
+    isItemMode
+      ? supabase.rpc("get_public_bill_members", { p_slug: slug })
+      : Promise.resolve({ data: null }),
+    // touchMemberViewed is fire-and-forget — its result never reaches the
+    // UI. We still want it in the same parallel batch so the RTT doesn't
+    // serialize behind member validation on cold nav.
+    touchMemberViewed(token),
+  ]);
+  const member = memberResult.data;
 
   if (!member || member.bill_slug !== slug) {
     return <ClaimView slug={slug} bill={bill} />;
   }
 
-  await touchMemberViewed(token);
-
-  // Item-mode bills need the full members list for co-claimer chips + math.
-  const isItemMode = bill.split_mode === "item";
-  let allMembers: PublicBillMemberRpc[] = [];
-  if (isItemMode) {
-    const { data } = await supabase.rpc("get_public_bill_members", {
-      p_slug: slug,
-    });
-    allMembers = (data as PublicBillMemberRpc[] | null) ?? [];
-  }
+  const allMembers: PublicBillMemberRpc[] =
+    (membersResult.data as PublicBillMemberRpc[] | null) ?? [];
 
   return (
     <ReceiptCard tissue className="p-6 sm:p-8">
