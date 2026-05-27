@@ -71,6 +71,7 @@ export interface BillMemberRow {
   claimed_at: Iso | null;
   claimed_device_hash: string | null;
   claimed_item_ids: string[];
+  is_organizer: boolean;
   created_at: Iso;
 }
 
@@ -87,8 +88,14 @@ export type BillMemberInsert = Omit<
   | "claimed_at"
   | "claimed_device_hash"
   | "claimed_item_ids"
+  | "is_organizer"
   | "created_at"
->;
+> & {
+  // Optional at insert: existing call sites can keep inserting without
+  // this field and get false via the DB default. The organizer-row
+  // path in createBill explicitly sets it to true.
+  is_organizer?: boolean;
+};
 
 export type PaymentEventType = "viewed" | "claimed" | "paid";
 
@@ -129,6 +136,7 @@ export interface PublicBillMemberRpc {
   claimed: boolean;
   claimed_item_ids: string[];
   paid_amount_cents: number | null;
+  is_organizer: boolean;
 }
 
 export interface MemberByTokenRpc {
