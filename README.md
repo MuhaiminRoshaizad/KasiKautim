@@ -131,7 +131,7 @@ Scoped out of this submission, documented so judges and future readers know they
 
 ## License
 
-[MIT](./LICENSE) © 2026 Aminuddin Muhaimin
+[MIT](./LICENSE) © 2026 Muhammad Muhaimin Bin Roshaizad ([@minned](https://github.com/minned))
 
 ## Contact
 
