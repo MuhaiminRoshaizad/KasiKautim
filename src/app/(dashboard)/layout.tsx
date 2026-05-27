@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Settings } from "lucide-react";
@@ -25,6 +26,22 @@ export default async function DashboardLayout({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  // Gate first-time signups behind /dashboard/welcome until they've
+  // confirmed their display name + (optional) DuitNow ID. Skip the
+  // gate when we ARE on /welcome (avoids a redirect loop). pathname
+  // is set by proxy-session.ts as the x-pathname request header.
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  if (!pathname.includes("/dashboard/welcome")) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("setup_complete")
+      .eq("id", user.id)
+      .single();
+    if (profile && !profile.setup_complete) {
+      redirect("/dashboard/welcome");
+    }
+  }
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-5 pt-6 pb-12 sm:px-8">
