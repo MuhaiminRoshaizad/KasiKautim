@@ -104,14 +104,25 @@ export async function markPaid(
 ): Promise<MarkPaidState> {
   const parsed = MarkPaidSchema.safeParse({
     token: formData.get("token"),
+    method: formData.get("method") ?? "",
+    note: formData.get("note") ?? "",
+    proofPath: formData.get("proofPath") ?? "",
   });
   if (!parsed.success) {
     return { ok: false, message: "Invalid request.", paidAt: null };
   }
 
+  // Empty strings → null so the RPC stores them as missing rather than ''.
+  const method = parsed.data.method?.trim() || null;
+  const note = parsed.data.note?.trim() || null;
+  const proofPath = parsed.data.proofPath?.trim() || null;
+
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc("mark_member_paid", {
     p_token: parsed.data.token,
+    p_method: method,
+    p_note: note,
+    p_proof_url: proofPath,
   });
 
   if (error) {
@@ -128,7 +139,7 @@ export async function markPaid(
     };
   }
 
-  // RPC now returns timestamptz directly; data is an ISO string or null.
+  // RPC returns timestamptz directly; data is an ISO string or null.
   const paidAt =
     typeof data === "string" ? data : new Date().toISOString();
 
