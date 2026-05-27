@@ -48,6 +48,20 @@ export async function createBill(
     }
   }
 
+  // Organizer-claimed item IDs arrive as a JSON array (FormData round-trip).
+  const rawMyClaims = formData.get("myClaimedItemIds");
+  let parsedMyClaims: string[] = [];
+  if (typeof rawMyClaims === "string" && rawMyClaims.length > 0) {
+    try {
+      parsedMyClaims = JSON.parse(rawMyClaims) as string[];
+    } catch {
+      return {
+        ok: false,
+        message: "Couldn't read your claimed items. Refresh and try again.",
+      };
+    }
+  }
+
   const parsed = CreateBillActionSchema.safeParse({
     title: formData.get("title"),
     description: formData.get("description") ?? "",
@@ -58,6 +72,8 @@ export async function createBill(
     items: parsedItems,
     taxCents: Number(formData.get("taxCents") ?? "0"),
     discountCents: Number(formData.get("discountCents") ?? "0"),
+    includeMyself: formData.get("includeMyself") === "true",
+    myClaimedItemIds: parsedMyClaims,
   });
 
   if (!parsed.success) {
@@ -79,6 +95,8 @@ export async function createBill(
     items,
     taxCents,
     discountCents,
+    includeMyself,
+    myClaimedItemIds,
   } = parsed.data;
 
   // ----- Member names parsing -----
@@ -96,6 +114,11 @@ export async function createBill(
 
   let totalCents: number;
   let assignedAmounts: number[];
+  // Organizer's auto-paid share, computed alongside the per-member splits
+  // below. Item-mode computes from claimed items + proportional tax share;
+  // equal-mode treats organizer as one extra null-amount participant and
+  // gives them the remainder-absorbing slot from splitEqually.
+  let organizerShareCents = 0;
 
   if (splitMode === "item") {
     // Item-mode: total = sum(items) + tax - discount.
@@ -110,6 +133,17 @@ export async function createBill(
       };
     }
     assignedAmounts = members.map(() => 0);
+
+    if (includeMyself) {
+      const myClaims = new Set(myClaimedItemIds);
+      const mySubtotal = items
+        .filter((it) => myClaims.has(it.id))
+        .reduce((a, it) => a + it.price_cents, 0);
+      const netCharge = taxCents - discountCents;
+      const myTaxShare =
+        itemsSum > 0 ? Math.floor((mySubtotal * netCharge) / itemsSum) : 0;
+      organizerShareCents = mySubtotal + myTaxShare;
+    }
   } else {
     // Equal-mode: existing flow — total required, distribute across members.
     try {
@@ -133,7 +167,14 @@ export async function createBill(
         },
       };
     }
-    if (nullCount === 0) {
+
+    // When includeMyself is on, the organizer is treated as one extra
+    // null-amount participant. splitEqually puts the remainder on the
+    // last slot — we map it to the organizer so they absorb the sen,
+    // not a friend (the organizer has the most context for the rounding).
+    const totalNullCount = nullCount + (includeMyself ? 1 : 0);
+
+    if (totalNullCount === 0) {
       if (specifiedSum !== totalCents) {
         return {
           ok: false,
@@ -146,11 +187,16 @@ export async function createBill(
       assignedAmounts = members.map((m) => m.amountCents as number);
     } else {
       const remaining = totalCents - specifiedSum;
-      const split = splitEqually(remaining, nullCount);
+      const split = splitEqually(remaining, totalNullCount);
       let cursor = 0;
       assignedAmounts = members.map((m) =>
         m.amountCents != null ? m.amountCents : split[cursor++]!,
       );
+      if (includeMyself) {
+        // Last slot in split[] is the organizer's — splitEqually puts the
+        // rounding remainder on the last entry, so they absorb the sen.
+        organizerShareCents = split[cursor]!;
+      }
     }
   }
 
@@ -162,6 +208,23 @@ export async function createBill(
   } = await supabase.auth.getUser();
   if (!user) {
     return { ok: false, message: "You're not signed in." };
+  }
+
+  // Need the organizer's display_name when includeMyself is on, so we
+  // can show "You · paid" on the bill detail. Onboarding gate guarantees
+  // setup_complete=true users have a display_name; fall back to email
+  // local part defensively if anything's off.
+  let organizerDisplayName = "";
+  if (includeMyself) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .maybeSingle();
+    organizerDisplayName =
+      profile?.display_name?.trim() ||
+      user.email?.split("@")[0] ||
+      "You";
   }
 
   let slug: string;
@@ -214,6 +277,35 @@ export async function createBill(
       await supabase.from("bills").delete().eq("id", billId);
       throw error;
     }
+
+    // Organizer-as-diner: insert a paid, is_organizer member row using
+    // the share computed up-front. claimed_item_ids drives display in
+    // item-mode (so others see "Shared with: Aisha" badges); the
+    // _recompute_item_shares trigger will skip this row going forward
+    // since paid=true, so the snapshotted paid_amount_cents stays put.
+    if (includeMyself) {
+      const { error: orgError } = await supabase
+        .from("bill_members")
+        .insert({
+          bill_id: billId,
+          name: organizerDisplayName,
+          amount_owed_cents: organizerShareCents,
+          member_token: newMemberToken(),
+          is_organizer: true,
+          paid: true,
+          paid_at: new Date().toISOString(),
+          paid_amount_cents: organizerShareCents,
+          payment_method: "cash",
+          claimed_item_ids: splitMode === "item" ? myClaimedItemIds : [],
+        });
+      if (orgError) {
+        // Roll back the bill so we never leave a partial "no organizer"
+        // bill when the checkbox said otherwise. Members cascade-delete.
+        await supabase.from("bills").delete().eq("id", billId);
+        throw orgError;
+      }
+    }
+
     return billSlug;
   }
 

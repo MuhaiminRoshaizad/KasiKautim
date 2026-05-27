@@ -18,8 +18,12 @@ import {
   type CreateBillForm,
 } from "@/types/schemas";
 
+import { ItemClaimPicker } from "@/components/item-claim-picker";
+
 import { MembersRowInput } from "./members-row-input";
 import { ReceiptScanner, type ScannerApplyPayload } from "./receipt-scanner";
+
+const ME_PLACEHOLDER_ID = "__me__";
 
 const FIELD_INPUT =
   "h-12 w-full border border-border bg-surface px-3 font-sans text-base text-foreground placeholder:text-foreground-faint focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 focus:ring-offset-background";
@@ -56,6 +60,12 @@ export function CreateBillFormIsland() {
   const [items, setItems] = useState<EditableItem[]>([]);
   const [taxString, setTaxString] = useState("0");
   const [discountString, setDiscountString] = useState("0");
+  // Tukang-bayar opt-in. Default true since the common case is "I ate too".
+  // Drives the organizer-as-paid-member insert in createBill.
+  const [includeMyself, setIncludeMyself] = useState(true);
+  // Organizer's claimed items (item-mode only). Tracked client-side as
+  // a Set of item IDs; flushed to FormData as JSON on submit.
+  const [myClaimedItemIds, setMyClaimedItemIds] = useState<string[]>([]);
 
   const {
     register,
@@ -106,6 +116,45 @@ export function CreateBillFormIsland() {
     );
     setTaxString(fromCents(payload.taxCents).toFixed(2));
     setDiscountString(fromCents(payload.discountCents).toFixed(2));
+    // Re-applying a scan resets the organizer's picks — the previous
+    // claim IDs reference items that no longer exist after replace.
+    setMyClaimedItemIds([]);
+  };
+
+  // Item-mode: the picker needs BillItem-shaped items (price_cents, not
+  // string). Derive from the editable items state so the picker reflects
+  // edits live. Skip items with empty/zero price — they're in-progress
+  // rows and shouldn't appear in the organizer picker yet.
+  const pickerItems = useMemo(
+    () =>
+      items
+        .filter((it) => it.name.trim().length > 0)
+        .map((it) => ({
+          id: it.id,
+          name: it.name.trim(),
+          price_cents: parsePriceToCents(it.price),
+        }))
+        .filter((it) => it.price_cents > 0),
+    [items],
+  );
+
+  // Drop stale myClaimedItemIds when items change (renamed, removed).
+  // Keep only IDs that still exist in the current items array.
+  const validItemIds = useMemo(
+    () => new Set(pickerItems.map((it) => it.id)),
+    [pickerItems],
+  );
+  const liveMyClaims = useMemo(
+    () => myClaimedItemIds.filter((id) => validItemIds.has(id)),
+    [myClaimedItemIds, validItemIds],
+  );
+
+  const toggleMyClaim = (itemId: string) => {
+    setMyClaimedItemIds((current) =>
+      current.includes(itemId)
+        ? current.filter((id) => id !== itemId)
+        : [...current, itemId],
+    );
   };
 
   const onSubmit = handleSubmit((data) => {
@@ -129,6 +178,11 @@ export function CreateBillFormIsland() {
     fd.append("items", JSON.stringify(splitMode === "item" ? itemsForServer : []));
     fd.append("taxCents", String(splitMode === "item" ? taxCents : 0));
     fd.append("discountCents", String(splitMode === "item" ? discountCents : 0));
+    fd.append("includeMyself", String(includeMyself));
+    fd.append(
+      "myClaimedItemIds",
+      JSON.stringify(splitMode === "item" && includeMyself ? liveMyClaims : []),
+    );
 
     startTransition(async () => {
       const initial: CreateBillState = { ok: null, message: "" };
@@ -280,6 +334,41 @@ export function CreateBillFormIsland() {
           </>
         )}
 
+        <IncludeMyselfCheckbox
+          checked={includeMyself}
+          onChange={setIncludeMyself}
+          disabled={pending}
+        />
+
+        {splitMode === "item" && includeMyself && pickerItems.length > 0 ? (
+          <div className="border border-border bg-surface/40 p-4">
+            <div className="text-xs font-medium uppercase tracking-widest text-foreground-soft">
+              What did YOU eat?
+            </div>
+            <p className="mt-1 text-[11px] text-foreground-faint">
+              Tap the items you ordered yourself. Your share gets auto-paid
+              when the bill is created — friends only see what they need to
+              pay for.
+            </p>
+            <div className="mt-3">
+              <ItemClaimPicker
+                items={pickerItems}
+                members={[
+                  {
+                    id: ME_PLACEHOLDER_ID,
+                    name: "You",
+                    claimedItemIds: liveMyClaims,
+                    paid: false,
+                  },
+                ]}
+                meId={ME_PLACEHOLDER_ID}
+                onToggle={toggleMyClaim}
+                disabled={pending}
+              />
+            </div>
+          </div>
+        ) : null}
+
         <Field
           label="Add the squad"
           hint={
@@ -334,6 +423,45 @@ export function CreateBillFormIsland() {
         </div>
       </form>
     </ReceiptCard>
+  );
+}
+
+// ---------- Include-myself checkbox ----------
+
+function IncludeMyselfCheckbox({
+  checked,
+  onChange,
+  disabled,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <label
+      className={cn(
+        "flex cursor-pointer items-start gap-3 border border-border bg-surface/40 px-3 py-3 transition-colors",
+        "hover:bg-surface focus-within:ring-2 focus-within:ring-foreground focus-within:ring-offset-2 focus-within:ring-offset-background",
+        disabled && "cursor-not-allowed opacity-60",
+      )}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        disabled={disabled}
+        className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer accent-ringgit"
+      />
+      <span className="flex flex-col gap-0.5">
+        <span className="text-sm font-medium text-foreground">
+          Include myself in the split (you ate too)
+        </span>
+        <span className="text-[11px] text-foreground-faint">
+          Auto-paid as the tukang bayar. Uncheck if you only paid for
+          others (e.g. treating someone).
+        </span>
+      </span>
+    </label>
   );
 }
 

@@ -81,6 +81,20 @@ export const CreateBillFormSchema = z.object({
     .max(LIMITS.totalAmountCents)
     .optional()
     .default(0),
+  // Tukang-bayar opt-in: when true, createBill inserts the organizer as
+  // an auto-paid member alongside the typed members. Default true since
+  // the common case is "I ate too". Toggled off for "I treated my parents"
+  // scenarios.
+  includeMyself: z.boolean().optional().default(true),
+  // Item-mode only: which items the organizer claims for themselves.
+  // Ignored in equal-mode (no items to claim). Subset-of-items validation
+  // happens in the action; here we just bound length to LIMITS.memberCount
+  // * a reasonable items-per-person ceiling to keep payloads sane.
+  myClaimedItemIds: z
+    .array(z.string().min(1).max(32))
+    .max(200)
+    .optional()
+    .default([]),
 });
 
 // Use z.input so optional+defaulted fields stay optional for RHF defaultValues.
