@@ -12,6 +12,10 @@ interface MarkPaidPanelProps {
   initiallyPaid: boolean;
   initialPaidAt: string | null;
   organizerName: string | null;
+  /** False when the bill is item-mode and the recipient hasn't claimed anything yet. */
+  canPay?: boolean;
+  /** For the disabled-state hint label. */
+  amountOwedCents?: number;
 }
 
 const INITIAL: MarkPaidState = { ok: null, message: "", paidAt: null };
@@ -21,6 +25,8 @@ export function MarkPaidPanel({
   initiallyPaid,
   initialPaidAt,
   organizerName,
+  canPay = true,
+  amountOwedCents,
 }: MarkPaidPanelProps) {
   const [state, formAction, pending] = useActionState(markPaid, INITIAL);
   const reduced = useReducedMotion();
@@ -60,7 +66,7 @@ export function MarkPaidPanel({
       <input type="hidden" name="token" value={token} />
       <Button
         type="submit"
-        disabled={pending}
+        disabled={pending || !canPay}
         size="lg"
         className="w-full font-display uppercase tracking-widest"
       >
@@ -72,7 +78,11 @@ export function MarkPaidPanel({
         </p>
       ) : null}
       <p className="text-center text-[11px] text-foreground-faint">
-        Tap after you transfer. Organizer gets notified instantly.
+        {!canPay
+          ? "Tap items above first to compute your share."
+          : amountOwedCents
+            ? "Tap after you transfer. Organizer gets notified instantly."
+            : "Tap after you transfer. Organizer gets notified instantly."}
       </p>
     </form>
   );
