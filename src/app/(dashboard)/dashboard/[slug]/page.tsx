@@ -286,7 +286,7 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
                     lastViewedAt={m.last_viewed_at}
                   />
                 </div>
-                <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:flex-nowrap">
+                <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
                   <a
                     href={privateWaUrl}
                     target="_blank"
@@ -297,17 +297,17 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
                         variant: "secondary",
                         size: "sm",
                       }),
-                      "flex-1 sm:flex-none",
+                      "!h-11 whitespace-nowrap sm:!h-9",
                     )}
                   >
                     <Send size={14} aria-hidden />
-                    Send privately
+                    Send
                   </a>
                   <CopyButton
                     value={memberLink}
                     label="Copy"
                     size="sm"
-                    className="flex-1 sm:flex-none"
+                    className="!h-11 sm:!h-9"
                   />
                 </div>
               </li>
