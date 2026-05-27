@@ -95,6 +95,10 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  /* Mobile-app safety net: prevent any rogue child from causing
+     a horizontal scroll on the page itself. Children that need to
+     scroll should opt in with overflow-x:auto on their own container. */
+  overflow-x: hidden;
 }
 
 /* Numeric tabular figures for amounts — money columns never jitter. */
