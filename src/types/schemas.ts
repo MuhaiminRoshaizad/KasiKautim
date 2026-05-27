@@ -29,7 +29,9 @@ const membersInput = z
 export const BillItemSchema = z.object({
   id: z.string().min(1).max(32),
   name: z.string().trim().min(1).max(80),
-  price_cents: z.number().int().nonnegative(),
+  // Cap at the same ceiling as a whole bill — protects against crafted
+  // form POSTs that submit Number.isInteger-passing nonsense like 1e16.
+  price_cents: z.number().int().nonnegative().max(LIMITS.totalAmountCents),
 });
 export type BillItemInput = z.infer<typeof BillItemSchema>;
 
@@ -62,8 +64,23 @@ export const CreateBillFormSchema = z.object({
   membersInput,
   splitMode: SplitModeSchema.default("equal"),
   items: z.array(BillItemSchema).optional().default([]),
-  taxCents: z.number().int().nonnegative().optional().default(0),
-  discountCents: z.number().int().nonnegative().optional().default(0),
+  // Cap tax + discount at the same per-bill ceiling as totalAmountCents.
+  // Without this, raw Number() on FormData admits 1e16 (Number.isInteger
+  // returns true) and inflates totalCents into nonsense territory.
+  taxCents: z
+    .number()
+    .int()
+    .nonnegative()
+    .max(LIMITS.totalAmountCents)
+    .optional()
+    .default(0),
+  discountCents: z
+    .number()
+    .int()
+    .nonnegative()
+    .max(LIMITS.totalAmountCents)
+    .optional()
+    .default(0),
 });
 
 // Use z.input so optional+defaulted fields stay optional for RHF defaultValues.
