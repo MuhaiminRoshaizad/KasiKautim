@@ -161,10 +161,19 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
             <span className="ml-2 font-mono text-sm text-foreground-faint tabular">
               / <AmountDisplay cents={totalCents} size="sm" muted />
             </span>
+            {collectedCents > totalCents ? (
+              <div className="mt-1 inline-block border border-highlighter px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-widest text-foreground">
+                + <AmountDisplay cents={collectedCents - totalCents} size="sm" className="text-foreground" /> overpaid
+              </div>
+            ) : allPaid && collectedCents < totalCents ? (
+              <div className="mt-1 inline-block border border-stamp px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-widest text-stamp">
+                − <AmountDisplay cents={totalCents - collectedCents} size="sm" className="text-stamp" /> short
+              </div>
+            ) : null}
           </div>
         </div>
         <div className="mt-3">
-          <ProgressBar value={progress} label="Progress" />
+          <ProgressBar value={Math.min(progress, 1)} label="Progress" />
         </div>
 
         <ReceiptDivider label="Share" />

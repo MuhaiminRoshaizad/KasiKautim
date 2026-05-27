@@ -198,20 +198,37 @@ export default async function ReportPage({ params }: ReportPageProps) {
             label="Total"
             value={<AmountDisplay cents={totalCents} size="lg" />}
             sublabel={
-              <>
-                Collected{" "}
-                <AmountDisplay
-                  cents={collectedCents}
-                  size="sm"
-                  className="text-foreground"
-                />{" "}
-                · outstanding{" "}
-                <AmountDisplay
-                  cents={outstandingCents}
-                  size="sm"
-                  className="text-foreground"
-                />
-              </>
+              collectedCents > totalCents ? (
+                <span className="text-foreground">
+                  Collected{" "}
+                  <AmountDisplay
+                    cents={collectedCents}
+                    size="sm"
+                    className="text-foreground"
+                  />{" "}
+                  · <span className="text-highlighter">overpaid by</span>{" "}
+                  <AmountDisplay
+                    cents={collectedCents - totalCents}
+                    size="sm"
+                    className="text-foreground"
+                  />
+                </span>
+              ) : (
+                <>
+                  Collected{" "}
+                  <AmountDisplay
+                    cents={collectedCents}
+                    size="sm"
+                    className="text-foreground"
+                  />{" "}
+                  · outstanding{" "}
+                  <AmountDisplay
+                    cents={outstandingCents}
+                    size="sm"
+                    className="text-foreground"
+                  />
+                </>
+              )
             }
           />
           <KpiCard
@@ -237,7 +254,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
         </div>
 
         <div className="mt-4">
-          <ProgressBar value={progress} label="Collection progress" />
+          <ProgressBar value={Math.min(progress, 1)} label="Collection progress" />
         </div>
       </ReceiptCard>
 
