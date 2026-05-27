@@ -77,25 +77,39 @@ export async function uploadProof(
   // orientation flag so portrait shots aren't sideways. Always output JPEG
   // for consistency — minor quality loss on PNG/WebP is acceptable for
   // payment screenshots, and HEIC -> JPEG normalizes the bucket.
+  //
+  // Hardened sharp options:
+  //   - failOn: "truncated" rejects malformed inputs before decoding
+  //   - limitInputPixels: 50M caps decoded surface area, blocking
+  //     decompression bombs (a 5MB TIFF can otherwise expand 100×+
+  //     and OOM the Vercel function during .jpeg() re-encode)
   const rawBytes = new Uint8Array(await file.arrayBuffer());
   let processedBytes: Buffer;
-  let storedContentType = file.type;
-  let ext = mimeToExt(file.type);
+  const storedContentType = "image/jpeg";
+  const ext = "jpg";
   try {
-    processedBytes = await sharp(rawBytes)
+    processedBytes = await sharp(rawBytes, {
+      failOn: "truncated",
+      limitInputPixels: 50_000_000,
+    })
       .rotate()
       .jpeg({ quality: 85, mozjpeg: true })
       .toBuffer();
-    storedContentType = "image/jpeg";
-    ext = "jpg";
   } catch (err) {
-    // sharp can fail on HEIC if libheif isn't bundled; fall back to raw bytes
-    // (still acceptable — original mime type, EXIF intact but we logged it).
-    logger.warn("sharp EXIF strip failed; storing raw bytes", {
+    // sharp can fail on HEIC when libheif isn't bundled (Vercel's Node 24
+    // default is one such environment) or on malformed images. We
+    // previously fell back to raw bytes, but that silently bypassed the
+    // EXIF-strip promise — payment-proof screenshots from iPhones carry
+    // GPS, device IDs, timestamps. Hard-reject instead and ask for JPG/PNG.
+    logger.warn("sharp EXIF strip failed; rejecting upload", {
       mime: file.type,
       err: err instanceof Error ? err.message : "unknown",
     });
-    processedBytes = Buffer.from(rawBytes);
+    return {
+      ok: false,
+      message:
+        "Couldn't process that image. Try saving it as JPG or PNG and upload again.",
+    };
   }
 
   const path = `bills/${member.bill_id}/${member.member_id}-${Date.now()}.${ext}`;
@@ -120,19 +134,3 @@ export async function uploadProof(
   return { ok: true, message: "Uploaded.", proofPath: path };
 }
 
-function mimeToExt(mime: string): string {
-  switch (mime) {
-    case "image/jpeg":
-      return "jpg";
-    case "image/png":
-      return "png";
-    case "image/webp":
-      return "webp";
-    case "image/heic":
-      return "heic";
-    case "image/heif":
-      return "heif";
-    default:
-      return "bin";
-  }
-}
