@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { customAlphabet } from "nanoid";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
@@ -18,6 +18,7 @@ import {
   type CreateBillForm,
 } from "@/types/schemas";
 
+import { MembersChipInput } from "./members-chip-input";
 import { ReceiptScanner, type ScannerApplyPayload } from "./receipt-scanner";
 
 const FIELD_INPUT =
@@ -58,6 +59,7 @@ export function CreateBillFormIsland() {
 
   const {
     register,
+    control,
     handleSubmit,
     setError,
     setValue,
@@ -282,21 +284,27 @@ export function CreateBillFormIsland() {
           label="Add the squad"
           hint={
             splitMode === "item"
-              ? "Names only — each person picks their items on the share link."
-              : 'Comma- or newline-separated. Add a number to override: "Aisha 25, Faiz 30, Wani".'
+              ? "Type a name + Enter. Each person picks items on the share link."
+              : 'Type name + Enter. Custom amount? "Wani 30" + Enter.'
           }
           error={errors.membersInput?.message}
           input={
-            <textarea
-              {...register("membersInput")}
-              rows={4}
-              placeholder={
-                splitMode === "item"
-                  ? "Aisha\nFaiz\nWani\nHafiz"
-                  : "Aisha\nFaiz\nWani 30\nHafiz"
-              }
-              className={cn(FIELD_INPUT, "h-auto py-3 font-mono text-sm")}
-              disabled={pending}
+            <Controller
+              name="membersInput"
+              control={control}
+              render={({ field }) => (
+                <MembersChipInput
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  disabled={pending}
+                  invalid={Boolean(errors.membersInput?.message)}
+                  placeholder={
+                    splitMode === "item"
+                      ? "Aisha, Faiz, Wani..."
+                      : 'Aisha, Faiz, "Wani 30"...'
+                  }
+                />
+              )}
             />
           }
         />
