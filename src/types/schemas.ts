@@ -167,6 +167,16 @@ export const ClaimMemberSchema = z.object({
 });
 
 /**
+ * Unclaim action — recipient who picked the wrong name escapes back to
+ * the claim picker. Device hash comes from the cookie server-side; client
+ * sends the token (which identifies the member they're currently holding).
+ */
+export const UnclaimMemberSchema = z.object({
+  token: z.string().trim().min(8).max(64),
+  slug: z.string().trim().min(4).max(32),
+});
+
+/**
  * Profile update — both fields optional, both clearable.
  * duitnow_id is loose-validated (5-50 chars, alphanumeric + a few separators)
  * to accept phone numbers (+60123456789), DuitNow IDs, business IDs, etc.

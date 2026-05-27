@@ -20,6 +20,7 @@ import type {
 import { ClaimRow } from "./claim-row";
 import { ItemPicker } from "./item-picker";
 import { MarkPaidPanel } from "./mark-paid-panel";
+import { UnclaimBanner } from "./unclaim-banner";
 
 interface PublicBillPageProps {
   params: Promise<{ slug: string }>;
@@ -190,6 +191,13 @@ async function MemberView({
 
   return (
     <ReceiptCard tissue className="p-6 sm:p-8">
+      <UnclaimBanner
+        slug={slug}
+        token={token}
+        name={member.name}
+        paid={member.paid}
+      />
+
       <BillHeader bill={bill} />
 
       <ReceiptDivider />

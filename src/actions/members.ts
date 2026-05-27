@@ -10,7 +10,11 @@ import {
 } from "@/lib/constants";
 import { logger } from "@/lib/logger";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { ClaimMemberSchema, MarkPaidSchema } from "@/types/schemas";
+import {
+  ClaimMemberSchema,
+  MarkPaidSchema,
+  UnclaimMemberSchema,
+} from "@/types/schemas";
 
 export interface ClaimMemberState {
   ok: boolean | null;
@@ -148,6 +152,60 @@ export async function markPaid(
     message: "Settled. Thank you 🙏",
     paidAt,
   };
+}
+
+/**
+ * Public — release a previously-claimed slot so a different person can
+ * claim it. Bound to the device that originally claimed (RPC compares
+ * claimed_device_hash). Fails silently when the member is already paid
+ * (data integrity — payment record stays attached to the slot).
+ *
+ * On success, redirects to /b/[slug] (no ?m=) so the user lands on the
+ * claim picker. Cookie is intentionally NOT cleared — same device can
+ * still re-claim a different slot.
+ */
+export async function unclaimMember(
+  _prev: ClaimMemberState,
+  formData: FormData,
+): Promise<ClaimMemberState> {
+  const parsed = UnclaimMemberSchema.safeParse({
+    token: formData.get("token"),
+    slug: formData.get("slug"),
+  });
+  if (!parsed.success) {
+    return { ok: false, message: "Invalid request." };
+  }
+
+  const jar = await cookies();
+  const deviceHash = jar.get(CLAIM_COOKIE_NAME)?.value;
+  if (!deviceHash) {
+    return { ok: false, message: "Can't verify your claim on this device." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("unclaim_member", {
+    p_token: parsed.data.token,
+    p_device_hash: deviceHash,
+  });
+
+  if (error) {
+    logger.error("unclaim_member rpc failed", {
+      code: error.code,
+      message: error.message,
+    });
+    return { ok: false, message: "Couldn't switch. Try again." };
+  }
+
+  if (data !== true) {
+    return {
+      ok: false,
+      message:
+        "Already settled — can't switch after marking paid. Contact the tukang bayar to fix.",
+    };
+  }
+
+  revalidatePath(`/b/${parsed.data.slug}`);
+  redirect(`/b/${parsed.data.slug}`);
 }
 
 /**
