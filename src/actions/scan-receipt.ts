@@ -4,6 +4,7 @@ import { generateObject, NoObjectGeneratedError } from "ai";
 import { google } from "@ai-sdk/google";
 import { z } from "zod";
 
+import { AI_SCANNER_MODEL } from "@/lib/constants";
 import { logger } from "@/lib/logger";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -102,7 +103,7 @@ export async function scanReceipt(
 
   try {
     const { object } = await generateObject({
-      model: google("gemini-2.0-flash"),
+      model: google(AI_SCANNER_MODEL),
       schema: ReceiptSchema,
       messages: [
         {
