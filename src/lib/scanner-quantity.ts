@@ -1,7 +1,7 @@
 /*
  * Expand quantity-prefixed receipt lines into N copies at unit price.
  *
- * Why: JomSplit's claim model is one-line-equals-one-claimable-chip.
+ * Why: KasiKautim's claim model is one-line-equals-one-claimable-chip.
  * If 10 people order nasi lemak but the receipt prints "10 NASI LEMAK
  * 85.00" as one consolidated line, the chip can't represent the case
  * where 8 people each eat 1 and 2 people share 1 — math would split

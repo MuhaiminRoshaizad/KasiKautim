@@ -282,7 +282,7 @@ function FallbackFrame() {
           textTransform: "uppercase",
         }}
       >
-        Jom split.
+        Kasi kautim.
       </div>
       <div
         style={{
@@ -356,7 +356,7 @@ function Footer({ allPaid }: { allPaid: boolean }) {
           textTransform: "uppercase",
         }}
       >
-        jomsplit
+        kasikautim
       </div>
     </div>
   );

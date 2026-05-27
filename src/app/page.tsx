@@ -29,7 +29,7 @@ export default function HomePage() {
             Split bills · Malaysia · 2026
           </p>
           <h1 className="mt-4 font-display text-5xl uppercase leading-[0.95] tracking-tight text-foreground sm:text-6xl lg:text-7xl">
-            Jom split.
+            Kasi kautim.
             <br />
             No awkward
             <br />

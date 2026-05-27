@@ -407,7 +407,7 @@ function ScanResult({ receipt, onClear, onRescan, onApply }: ScanResultProps) {
           title={
             isSupportedCurrency
               ? undefined
-              : `JomSplit only supports ${DEFAULT_CURRENCY} bills.`
+              : `KasiKautim only supports ${DEFAULT_CURRENCY} bills.`
           }
         >
           <Check size={14} aria-hidden />
@@ -432,7 +432,7 @@ function UnsupportedCurrencyBanner({ currency }: { currency: string }) {
       <AlertTriangle size={14} className="mt-0.5 shrink-0 text-stamp" aria-hidden />
       <div>
         <p className="font-medium text-stamp">
-          This receipt is in {currency} — JomSplit only supports {DEFAULT_CURRENCY}.
+          This receipt is in {currency} — KasiKautim only supports {DEFAULT_CURRENCY}.
         </p>
         <p className="mt-1 text-foreground-soft">
           You can browse the scan below, but &quot;Apply to form&quot; is

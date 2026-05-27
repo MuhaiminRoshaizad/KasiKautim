@@ -14,7 +14,7 @@ export function genericShareMessage(args: {
   link: string;
 }): string {
   const { title, link } = args;
-  return `Jom split — *${title}*. Tap your name to settle.\n${link}`;
+  return `Kasi kautim — *${title}*. Tap your name to settle.\n${link}`;
 }
 
 export function privateShareMessage(args: {

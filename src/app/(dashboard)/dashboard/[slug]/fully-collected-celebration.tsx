@@ -9,7 +9,7 @@ interface FullyCollectedCelebrationProps {
   allPaid: boolean;
 }
 
-const STORAGE_PREFIX = "jomsplit:celebrated:";
+const STORAGE_PREFIX = "kasikautim:celebrated:";
 
 function storageKey(billId: string) {
   return `${STORAGE_PREFIX}${billId}`;

@@ -1,5 +1,5 @@
-export const APP_NAME = "JomSplit";
-export const APP_TAGLINE = "Jom split, no awkward chasing.";
+export const APP_NAME = "KasiKautim";
+export const APP_TAGLINE = "Kasi kautim, no awkward chasing.";
 export const APP_DESCRIPTION =
   "Create a bill, share one link, watch it settle. Built for Malaysian group chats.";
 
@@ -21,7 +21,7 @@ export const SLUG_RETRY_ATTEMPTS = 3;
 export const CLAIM_COOKIE_NAME = "jms_claim";
 export const CLAIM_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
-export const THEME_STORAGE_KEY = "jomsplit:theme";
+export const THEME_STORAGE_KEY = "kasikautim:theme";
 export const THEME_VALUES = ["light", "dark", "system"] as const;
 export type ThemeValue = (typeof THEME_VALUES)[number];
 

@@ -1,13 +1,13 @@
-# JomSplit — Split bills, no awkward chasing
+# KasiKautim — Settle shared bills, no awkward chasing
 
-> "Jom split" = "let's split" in Manglish.
+> "Kasi kautim" = "settle it / sort it out" in Manglish (from Cantonese 搞掂 *gao dim*).
 > A web app for splitting bills the way Malaysians actually do it — share a link in the group chat, watch it settle.
 
 **Built for:** [KrackedDevs](https://krackeddevs.com/) — a Malaysian platform that hosts paid coding "bounties" where anyone can submit a project answering a posted brief. Multiple builders ship their take on the same bounty; the brief owner picks the winners.
 
 **This bounty:** [Split Bill & Payment Tracker Web App](https://krackeddevs.com/code/bounty/split-bill-payment-tracker-web-app)
-**Live URL:** https://jom-split-two.vercel.app
-**Repo:** https://github.com/MuhaiminRoshaizad/JomSplit
+**Live URL:** https://kasi-kautim.vercel.app
+**Repo:** https://github.com/MuhaiminRoshaizad/KasiKautim
 
 ---
 
@@ -20,7 +20,7 @@ Splitting a group bill in Malaysia today looks like this:
 3. Half ignore, half "later la", one forgets entirely.
 4. A week later, the tukang bayar is RM 80 out of pocket and emotionally drained.
 
-JomSplit replaces step 2–4 with **one link** dropped into the group chat. Recipients tap their name, pay via DuitNow / bank app / TNG, and mark themselves paid with an optional screenshot. The tukang bayar sees who's settled and who's ghosting — in real time.
+KasiKautim replaces step 2–4 with **one link** dropped into the group chat. Recipients tap their name, pay via DuitNow / bank app / TNG, and mark themselves paid with an optional screenshot. The tukang bayar sees who's settled and who's ghosting — in real time.
 
 ## What it does
 
@@ -52,7 +52,7 @@ Tests: vitest, 40/40 green. Money math, slug retry, members parser, item-split m
 
 ## Try it
 
-1. Open https://jom-split-two.vercel.app on your phone.
+1. Open https://kasi-kautim.vercel.app on your phone.
 2. Tap "Continue with Google" and pick the Google account you want to use.
 3. Tap "Create a bill", scan or type in the items, add the squad.
 4. Hit "Send to group chat" — copy the link.
@@ -62,8 +62,8 @@ Tests: vitest, 40/40 green. Money math, slug retry, members parser, item-split m
 ## Run locally
 
 ```bash
-git clone https://github.com/MuhaiminRoshaizad/JomSplit.git
-cd JomSplit
+git clone https://github.com/MuhaiminRoshaizad/KasiKautim.git
+cd KasiKautim
 npm install
 cp .env.example .env.local   # fill in Supabase + Gemini keys
 npm run dev
@@ -141,7 +141,7 @@ Scoped out of this submission, documented so judges and future readers know they
 
 ### Payment + reconciliation
 
-- **Custom paid amount** — recipients can only mark-paid for the fair share JomSplit computed. "Tip", "round up", "I'll add the parking fee" deferred to v2.
+- **Custom paid amount** — recipients can only mark-paid for the fair share KasiKautim computed. "Tip", "round up", "I'll add the parking fee" deferred to v2.
 - **Settle-up round** — when fair shares shift after late claims (someone new claims an item after others paid), the delta is stored and surfaced on the report but there's no in-app UX to reconcile it. Organizer eats the diff or DMs whoever owes more.
 - **No un-mark-paid** — once a recipient confirms "I've paid", they cannot reverse it themselves. The tukang bayar has to delete the bill if it was a mistake. Intentional — pretending an irreversible action is undoable would cause worse confusion.
 - **No partial bill payment** — you either mark your entire share paid or you don't. "I'll pay half now, half on Friday" isn't supported.
