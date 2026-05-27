@@ -113,6 +113,28 @@ export async function scanReceipt(
     return { ok: false, message: "Sign in to use the scanner." };
   }
 
+  // Per-user daily quota — Gemini's free tier cap (1500/day) is project-
+  // wide, so without this any one user can DoS the scanner for everyone.
+  // The RPC atomically rolls the day forward + increments, returning
+  // false past the daily cap.
+  const { data: withinQuota, error: quotaErr } = await supabase.rpc(
+    "consume_scan_quota",
+    { p_user_id: user.id },
+  );
+  if (quotaErr) {
+    logger.error("consume_scan_quota rpc failed", { code: quotaErr.code });
+    return {
+      ok: false,
+      message: "Scanner unavailable right now. Fill in items manually.",
+    };
+  }
+  if (withinQuota === false) {
+    return {
+      ok: false,
+      message: "Daily scan limit reached. Fill in items manually for today.",
+    };
+  }
+
   const file = formData.get("image");
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, message: "Pick a receipt photo first." };
