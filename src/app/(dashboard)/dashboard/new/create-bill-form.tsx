@@ -18,7 +18,7 @@ import {
   type CreateBillForm,
 } from "@/types/schemas";
 
-import { MembersChipInput } from "./members-chip-input";
+import { MembersRowInput } from "./members-row-input";
 import { ReceiptScanner, type ScannerApplyPayload } from "./receipt-scanner";
 
 const FIELD_INPUT =
@@ -284,8 +284,8 @@ export function CreateBillFormIsland() {
           label="Add the squad"
           hint={
             splitMode === "item"
-              ? "Type a name + Enter. Each person picks items on the share link."
-              : 'Type name + Enter. Custom amount? "Wani 30" + Enter.'
+              ? "Each person picks their items on the share link."
+              : "Leave the amount blank to split equally. Fill it to override one person's share."
           }
           error={errors.membersInput?.message}
           input={
@@ -293,16 +293,12 @@ export function CreateBillFormIsland() {
               name="membersInput"
               control={control}
               render={({ field }) => (
-                <MembersChipInput
+                <MembersRowInput
                   value={field.value ?? ""}
                   onChange={field.onChange}
                   disabled={pending}
                   invalid={Boolean(errors.membersInput?.message)}
-                  placeholder={
-                    splitMode === "item"
-                      ? "Aisha, Faiz, Wani..."
-                      : 'Aisha, Faiz, "Wani 30"...'
-                  }
+                  showAmount={splitMode === "equal"}
                 />
               )}
             />
