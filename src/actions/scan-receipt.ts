@@ -29,23 +29,48 @@ const ReceiptSchema = z.object({
       z.object({
         name: z
           .string()
-          .describe("The item name as printed. Strip leading dashes/numbers."),
+          .describe(
+            "The item name as printed. Strip leading dashes, quantity markers, and SKU codes.",
+          ),
         price_cents: z
           .number()
           .int()
           .nonnegative()
           .describe(
-            "Price for THIS line, in cents. e.g. RM 12.50 -> 1250. If a quantity is shown, this is the line total, not the unit price.",
+            "Price for THIS line in cents. RM 12.50 -> 1250. If a quantity is shown next to the item (e.g. '2 AYAM RM 14.00'), this number is the LINE TOTAL printed on the receipt, not the unit price.",
           ),
       }),
     )
-    .describe("Each line-item with its price. Do not include subtotals, tax, or total here."),
+    .describe(
+      "Each line-item with its price. Do NOT include subtotals, tax, service charge, rounding, or grand total here.",
+    ),
+  subtotal_cents: z
+    .number()
+    .int()
+    .nonnegative()
+    .nullable()
+    .describe(
+      "Pre-tax/pre-service-charge subtotal in cents, if a 'Subtotal' or 'Sub Total' line is explicitly shown. Null if not labelled as such.",
+    ),
+  tax_cents: z
+    .number()
+    .int()
+    .nonnegative()
+    .nullable()
+    .describe(
+      "Sum of all tax + service-charge lines in cents (SST 6%, GST 6%, Service Tax, Service Charge 10%, Rounding). Null if none shown.",
+    ),
   total_cents: z
     .number()
     .int()
     .nonnegative()
     .describe(
-      "Final amount paid, including tax/service charge, in cents. This should equal the largest 'TOTAL' figure on the receipt.",
+      "FINAL amount the customer paid, in cents. Use this priority: " +
+        "(1) the line literally labelled 'NET TOTAL', 'GRAND TOTAL', or 'TOTAL DUE'; " +
+        "(2) if 'CASH' and 'CHANGE' are both visible, compute Cash - Change; " +
+        "(3) the line labelled 'TOTAL' (note: on Malaysian receipts a 'TOTAL' line is usually already tax-inclusive — do NOT add SST/GST/service on top of it); " +
+        "(4) only as a last resort, sum of items + tax. " +
+        "Never double-count tax. The amount the customer actually handed over is the answer.",
     ),
   currency: z
     .string()
@@ -112,10 +137,12 @@ export async function scanReceipt(
             {
               type: "text",
               text:
-                "You are a receipt parser for a Malaysian split-bill app. " +
-                "Extract the merchant name, every line-item with its price, the final total, and the currency. " +
+                "You are a precise receipt parser for a Malaysian split-bill app. " +
+                "Extract: merchant name, every line-item with its price, the subtotal (if labelled), the tax/service sum (if any), the final total the customer paid, and the currency. " +
                 "Convert all amounts to integer cents (RM 12.50 -> 1250). " +
-                "If a receipt is unreadable, return empty items and a zero total. Do not invent items.",
+                "Critical: Malaysian receipts often show 'SUBTOTAL' that already includes SST/GST/service charge — never add tax twice. " +
+                "If 'CASH' and 'CHANGE' lines are both present, the total customer paid equals Cash - Change. Use that as a sanity check. " +
+                "If the receipt is unreadable, return empty items and zero total — do not invent items or amounts.",
             },
             { type: "file", data: bytes, mediaType: file.type },
           ],
