@@ -123,10 +123,38 @@ export const ParsedMemberSchema = z.object({
 export type ParsedMember = z.infer<typeof ParsedMemberSchema>;
 
 /**
+ * Payment methods the recipient can pick when marking paid.
+ * Mirrors the CHECK constraint in DB migration 0005 — keep in sync.
+ */
+export const PaymentMethodSchema = z.enum([
+  "cash",
+  "duitnow",
+  "tng",
+  "maybank2u",
+  "other",
+]);
+export type PaymentMethod = z.infer<typeof PaymentMethodSchema>;
+
+/**
  * Mark-paid action input. Token is bearer credential — never logged.
+ * method/note/proofPath are all optional — recipient can skip the audit
+ * fields entirely and still mark themselves paid (vibes mode).
  */
 export const MarkPaidSchema = z.object({
   token: z.string().trim().min(8).max(64),
+  method: PaymentMethodSchema.optional().or(z.literal("")),
+  note: z
+    .string()
+    .trim()
+    .max(120, "Keep the note under 120 characters.")
+    .optional()
+    .or(z.literal("")),
+  proofPath: z
+    .string()
+    .trim()
+    .max(500)
+    .optional()
+    .or(z.literal("")),
 });
 
 /**

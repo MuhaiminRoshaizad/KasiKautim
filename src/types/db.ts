@@ -48,6 +48,13 @@ export type BillInsert = Omit<BillRow, "id" | "created_at" | "updated_at" | "sta
   status?: BillStatus;
 };
 
+export type PaymentMethodDb =
+  | "cash"
+  | "duitnow"
+  | "tng"
+  | "maybank2u"
+  | "other";
+
 export interface BillMemberRow {
   id: string;
   bill_id: string;
@@ -57,8 +64,10 @@ export interface BillMemberRow {
   paid: boolean;
   paid_at: Iso | null;
   paid_amount_cents: number | null;
-  last_viewed_at: Iso | null;
+  payment_method: PaymentMethodDb | null;
+  payment_note: string | null;
   payment_proof_url: string | null;
+  last_viewed_at: Iso | null;
   claimed_at: Iso | null;
   claimed_device_hash: string | null;
   claimed_item_ids: string[];
@@ -71,8 +80,10 @@ export type BillMemberInsert = Omit<
   | "paid"
   | "paid_at"
   | "paid_amount_cents"
-  | "last_viewed_at"
+  | "payment_method"
+  | "payment_note"
   | "payment_proof_url"
+  | "last_viewed_at"
   | "claimed_at"
   | "claimed_device_hash"
   | "claimed_item_ids"
