@@ -20,6 +20,7 @@ import { sumCents } from "@/lib/money";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { BillItem } from "@/types/db";
 
+import { FullyCollectedCelebration } from "./fully-collected-celebration";
 import { RealtimeBillSubscription } from "./realtime-bill-subscription";
 
 interface BillDetailPageProps {
@@ -82,6 +83,7 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <RealtimeBillSubscription billId={bill.id} />
+      <FullyCollectedCelebration billId={bill.id} allPaid={allPaid} />
       <div className="flex items-center justify-between gap-2">
         <Link
           href="/dashboard"
