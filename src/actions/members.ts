@@ -176,11 +176,12 @@ export async function unclaimMember(
     return { ok: false, message: "Invalid request." };
   }
 
+  // The member_token in the URL IS the credential — anyone holding it
+  // is by definition the recipient. We pass the device hash if we have
+  // it (cookie set during the public picker flow) but don't require it,
+  // because per-member-link recipients never went through that path.
   const jar = await cookies();
-  const deviceHash = jar.get(CLAIM_COOKIE_NAME)?.value;
-  if (!deviceHash) {
-    return { ok: false, message: "Can't verify your claim on this device." };
-  }
+  const deviceHash = jar.get(CLAIM_COOKIE_NAME)?.value ?? null;
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc("unclaim_member", {
