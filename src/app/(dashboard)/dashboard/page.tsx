@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { AlertCircle, ArrowRight, Plus } from "lucide-react";
 
 import { BillProgressCard } from "@/components/bill-progress-card";
 import { buttonClassName } from "@/components/button";
 import { ReceiptCard, ReceiptDivider } from "@/components/receipt-card";
+import { cn } from "@/lib/cn";
 import { sumCents } from "@/lib/money";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -20,23 +21,37 @@ interface BillWithMembers {
 
 export default async function DashboardPage() {
   const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // RLS scopes both bills and bill_members to the organizer's rows.
-  const { data } = await supabase
-    .from("bills")
-    .select(
-      "id, slug, title, total_cents, due_date, status, created_at, bill_members(amount_owed_cents, paid)",
-    )
-    .order("created_at", { ascending: false });
+  // Profile read in parallel — the layout already verified user is present.
+  const [billsResult, profileResult] = await Promise.all([
+    supabase
+      .from("bills")
+      .select(
+        "id, slug, title, total_cents, due_date, status, created_at, bill_members(amount_owed_cents, paid)",
+      )
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("profiles")
+      .select("duitnow_id")
+      .eq("id", user?.id ?? "")
+      .maybeSingle(),
+  ]);
 
-  const bills = (data ?? []) as BillWithMembers[];
+  const bills = (billsResult.data ?? []) as BillWithMembers[];
+  const needsDuitnow = !profileResult.data?.duitnow_id;
 
   if (bills.length === 0) {
-    return <EmptyState />;
+    return <EmptyState needsDuitnow={needsDuitnow} />;
   }
 
   return (
     <div className="mx-auto max-w-3xl">
+      {needsDuitnow ? <DuitnowSetupBanner /> : null}
+
       <div className="mb-6 flex items-end justify-between gap-3">
         <h1 className="font-display text-3xl uppercase tracking-tight text-foreground">
           Your bills
@@ -77,9 +92,10 @@ export default async function DashboardPage() {
   );
 }
 
-function EmptyState() {
+function EmptyState({ needsDuitnow }: { needsDuitnow: boolean }) {
   return (
     <div className="mx-auto max-w-xl">
+      {needsDuitnow ? <DuitnowSetupBanner /> : null}
       <ReceiptCard className="p-8 text-center">
         <div className="font-mono text-[10px] uppercase tracking-widest text-foreground-faint">
           Dashboard · empty
@@ -105,5 +121,39 @@ function EmptyState() {
         </Link>
       </ReceiptCard>
     </div>
+  );
+}
+
+function DuitnowSetupBanner() {
+  return (
+    <Link
+      href="/dashboard/settings"
+      className={cn(
+        "mb-6 flex items-center justify-between gap-3 border border-highlighter/60 bg-highlighter/10 px-4 py-3",
+        "transition-colors hover:bg-highlighter/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <AlertCircle
+          size={18}
+          aria-hidden
+          className="mt-0.5 shrink-0 text-foreground"
+        />
+        <div>
+          <p className="text-sm font-medium text-foreground">
+            Add your DuitNow ID
+          </p>
+          <p className="mt-0.5 text-[11px] text-foreground-soft">
+            Without it, recipients can&apos;t tap-to-copy your account when
+            they pay.
+          </p>
+        </div>
+      </div>
+      <ArrowRight
+        size={16}
+        aria-hidden
+        className="shrink-0 text-foreground-soft"
+      />
+    </Link>
   );
 }
