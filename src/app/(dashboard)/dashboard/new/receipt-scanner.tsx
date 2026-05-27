@@ -297,28 +297,20 @@ function ScanResult({
 
       <ReceiptDivider label="Breakdown" />
 
-      <dl className="space-y-1 font-mono text-xs">
-        <Row label="Sum of items">
-          <AmountDisplay cents={itemsSumCents} size="sm" muted />
-        </Row>
-        {taxCents > 0 ? (
-          <Row label="Tax / service">
-            <AmountDisplay cents={taxCents} size="sm" muted />
-          </Row>
-        ) : null}
-        {receipt.subtotal_cents != null && receipt.subtotal_cents !== itemsSumCents ? (
-          <Row label="Scanned subtotal">
-            <span className="text-foreground-faint">
-              <AmountDisplay cents={receipt.subtotal_cents} size="sm" muted />{" "}
-              <span className="text-[10px]">(differs from items)</span>
-            </span>
-          </Row>
-        ) : null}
-      </dl>
+      <Breakdown
+        itemsSumCents={itemsSumCents}
+        taxCents={taxCents}
+        discountCents={receipt.discount_cents ?? 0}
+        subtotalScannedCents={receipt.subtotal_cents}
+        totalCents={totalCents}
+      />
 
-      <div className="mt-2 flex items-center gap-2 border-t border-ringgit/30 pt-2">
-        <span className="text-xs font-medium uppercase tracking-widest text-foreground-soft">
-          Total
+      <div className="mt-3 flex items-center gap-2 border-t border-ringgit/30 pt-3">
+        <span
+          className="text-xs font-medium uppercase tracking-widest text-foreground"
+          title="The amount the bill should charge people. Editable — fix it if the scanner got it wrong."
+        >
+          Final amount to charge
         </span>
         <div className="flex flex-1 items-center justify-end gap-2">
           <span className="font-mono text-xs text-foreground-faint">RM</span>
@@ -340,6 +332,7 @@ function ScanResult({
           type="button"
           onClick={useSumAsTotal}
           className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-widest text-ringgit underline-offset-4 hover:underline"
+          title="Replace the total with sum of items + tax. Use when the scanned total looks wrong."
         >
           <RotateCcw size={11} aria-hidden />
           Use sum{taxCents > 0 ? " + tax" : ""} as total ({" "}
@@ -370,11 +363,144 @@ function ScanResult({
   );
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Row({
+  label,
+  hint,
+  tooltip,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  tooltip?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex items-baseline justify-between gap-3">
-      <dt className="text-foreground-soft">{label}</dt>
-      <dd className="tabular">{children}</dd>
+    <div className="flex items-baseline justify-between gap-3 font-mono text-xs">
+      <dt className="flex min-w-0 items-baseline gap-2 text-foreground-soft">
+        <span title={tooltip} className={tooltip ? "cursor-help underline decoration-dotted decoration-foreground-faint/40 underline-offset-2" : undefined}>
+          {label}
+        </span>
+        {hint ? (
+          <span className="truncate text-[10px] text-foreground-faint">
+            {hint}
+          </span>
+        ) : null}
+      </dt>
+      <dd className="tabular shrink-0">{children}</dd>
     </div>
+  );
+}
+
+interface BreakdownProps {
+  itemsSumCents: number;
+  taxCents: number;
+  discountCents: number;
+  subtotalScannedCents: number | null;
+  totalCents: number;
+}
+
+/**
+ * Interpret the relationship between items / tax / discount / total and label
+ * each row with what it actually represents on the user's receipt.
+ *
+ * Three common Malaysian receipt patterns:
+ *   1. Tax-inclusive  : items_sum                = total  (tax shown for audit only)
+ *   2. Tax-exclusive  : items_sum + tax          = total  (tax added on top)
+ *   3. With discount  : items_sum - discount (+t)= total
+ *
+ * A 1-cent rounding tolerance lets us match real-world receipts that round
+ * down to the nearest 5 sen.
+ */
+function Breakdown({
+  itemsSumCents,
+  taxCents,
+  discountCents,
+  subtotalScannedCents,
+  totalCents,
+}: BreakdownProps) {
+  const TOL = 5; // 5-cent tolerance for rounding-down
+  const close = (a: number, b: number) => Math.abs(a - b) <= TOL;
+
+  const itemsOnly = close(itemsSumCents - discountCents, totalCents);
+  const taxAddedOnTop = close(
+    itemsSumCents - discountCents + taxCents,
+    totalCents,
+  );
+  const taxIncluded =
+    !taxAddedOnTop && taxCents > 0 && itemsOnly;
+
+  const reconciles = itemsOnly || taxAddedOnTop;
+
+  const taxHint = taxIncluded
+    ? "already in item prices"
+    : taxAddedOnTop
+      ? "added on top"
+      : taxCents > 0
+        ? undefined
+        : undefined;
+
+  return (
+    <dl className="space-y-1">
+      <Row
+        label="Items add up to"
+        tooltip="Sum of all the line-items in the editable list above."
+      >
+        <AmountDisplay cents={itemsSumCents} size="sm" muted />
+      </Row>
+
+      {discountCents > 0 ? (
+        <Row
+          label="Discount / promo"
+          tooltip="Voucher, coupon, or promo amount the receipt subtracted before total."
+        >
+          <span className="text-ringgit">
+            − <AmountDisplay cents={discountCents} size="sm" muted />
+          </span>
+        </Row>
+      ) : null}
+
+      {taxCents > 0 ? (
+        <Row
+          label="GST / SST / service"
+          hint={taxHint}
+          tooltip={
+            taxIncluded
+              ? "Tax printed on the receipt — but on this receipt it's already inside the item prices, so don't add it on top."
+              : taxAddedOnTop
+                ? "Tax printed on the receipt and added on top of items to reach the total."
+                : "Tax printed on the receipt. The math doesn't cleanly reconcile — double-check the total."
+          }
+        >
+          <AmountDisplay cents={taxCents} size="sm" muted />
+        </Row>
+      ) : null}
+
+      {subtotalScannedCents != null &&
+      Math.abs(subtotalScannedCents - itemsSumCents) > TOL ? (
+        <Row
+          label="Receipt's subtotal line"
+          hint="audit info, not what to charge"
+          tooltip="The 'Subtotal' or 'Taxable Amount' line printed on the receipt. Differs from the items sum, which usually means tax is already baked in (Malaysian-style)."
+        >
+          <AmountDisplay cents={subtotalScannedCents} size="sm" muted />
+        </Row>
+      ) : null}
+
+      {reconciles ? (
+        <p
+          className="pt-1 text-[10px] text-ringgit"
+          title="Items, tax, and discount cleanly add up to the total."
+        >
+          ✓ math reconciles
+        </p>
+      ) : (
+        <p
+          className="pt-1 text-[10px] text-stamp"
+          title="Items, tax, and discount don't cleanly add up to the total. Double-check before applying — the scanner may have misread something."
+        >
+          ⚠ math doesn&apos;t reconcile — check the total
+        </p>
+      )}
+    </dl>
   );
 }
