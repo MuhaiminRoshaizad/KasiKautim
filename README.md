@@ -39,7 +39,7 @@ JomSplit replaces step 2–4 with **one link** dropped into the group chat. Reci
 | Framework | Next.js 16.2 (App Router, RSC by default), TypeScript strict |
 | UI | Tailwind v4 with custom "Transactional Paper" palette tokens, Framer Motion |
 | Database & realtime | Supabase Postgres + Realtime + Storage |
-| Auth | Supabase magic-link (organizer only; recipients are link-credentialed) |
+| Auth | Supabase Auth with Google OAuth (organizer only; recipients are link-credentialed) |
 | AI | Google Gemini 2.5 Flash via Vercel AI SDK |
 | OG image | next/og (1200×630 PNG, receipt-styled) |
 | Image processing | sharp (EXIF strip on payment proofs) |
@@ -51,7 +51,7 @@ Tests: vitest, 40/40 green. Money math, slug retry, members parser, item-split m
 ## Try it
 
 1. Open https://jom-split-two.vercel.app on your phone.
-2. Sign in with magic link (any real email).
+2. Tap "Continue with Google" and pick the Google account you want to use.
 3. Tap "Create a bill", scan or type in the items, add the squad.
 4. Hit "Send to group chat" — copy the link.
 5. Open the link in another browser/incognito as a recipient. Tap a name. Mark paid.
@@ -72,6 +72,7 @@ npm run dev
 - A Supabase project with the migrations in `supabase/migrations/` applied (use `supabase db push` or the Supabase MCP).
 - A `payment-proofs` Storage bucket (private, 5 MB limit, image MIME types).
 - A Google AI Studio Gemini API key (free tier, vision-capable).
+- A Google Cloud OAuth 2.0 client ID + secret, with `https://<your-supabase-ref>.supabase.co/auth/v1/callback` listed under Authorized redirect URIs. Paste the credentials into Supabase Dashboard → Authentication → Providers → Google.
 
 Run tests / lint / build:
 
