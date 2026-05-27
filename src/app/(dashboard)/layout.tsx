@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LogOut, Settings } from "lucide-react";
+import { Settings } from "lucide-react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
-import { signOut } from "@/actions/auth";
 import { APP_NAME } from "@/lib/constants";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+import { SignOutButton } from "./sign-out-button";
 
 const ICON_BTN =
   "inline-flex h-10 w-10 items-center justify-center border border-border bg-surface text-foreground transition-colors hover:bg-surface-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -44,16 +45,7 @@ export default async function DashboardLayout({
             <Settings size={18} aria-hidden />
           </Link>
           <ThemeToggle />
-          <form action={signOut}>
-            <button
-              type="submit"
-              aria-label="Sign out"
-              title="Sign out"
-              className={ICON_BTN}
-            >
-              <LogOut size={18} aria-hidden />
-            </button>
-          </form>
+          <SignOutButton iconButtonClassName={ICON_BTN} />
         </div>
       </header>
 
