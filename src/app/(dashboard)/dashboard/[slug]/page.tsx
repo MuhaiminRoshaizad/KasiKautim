@@ -197,8 +197,8 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
         </div>
         <p className="mt-2 text-[11px] text-foreground-faint">
           {isItemMode
-            ? "Drop the link once. Each person taps their items to compute their share."
-            : "Drop the link once. Recipients tap their name on the bill page."}
+            ? "Drop the link once. Each person taps the items they ordered."
+            : "Drop the link once. Each person taps their own name."}
         </p>
 
         <ReceiptDivider

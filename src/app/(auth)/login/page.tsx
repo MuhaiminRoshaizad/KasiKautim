@@ -46,7 +46,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               Welcome back lah
             </h1>
             <p className="mt-2 text-sm text-foreground-soft">
-              Sign in with Google. New here? Same button makes your account.
+              Sign in with Google. First time? Same button creates your account.
             </p>
           </div>
 

@@ -88,8 +88,7 @@ function EmptyState() {
           No bills yet lah
         </h1>
         <p className="mx-auto mt-3 max-w-sm text-sm text-foreground-soft">
-          Create your first bill and we&apos;ll mint a shareable link you can
-          drop straight into the group chat.
+          Set up a bill and get one link to drop in the group chat.
         </p>
 
         <ReceiptDivider />

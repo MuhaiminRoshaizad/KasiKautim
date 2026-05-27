@@ -151,7 +151,7 @@ async function ClaimView({ slug, bill }: { slug: string; bill: PublicBillRpc }) 
       )}
 
       <p className="mt-4 text-center text-[11px] text-foreground-faint">
-        Bookmark your name once claimed — link saves on this device.
+        Your phone remembers your name. Open the link again anytime.
       </p>
     </ReceiptCard>
   );

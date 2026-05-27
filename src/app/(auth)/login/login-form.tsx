@@ -52,7 +52,7 @@ export function LoginForm({ next, error }: LoginFormProps) {
       </Link>
 
       <p className="text-center text-xs text-foreground-faint">
-        We use Google sign-in so there&apos;s no password to remember.
+        No password. No email link. One tap.
       </p>
     </div>
   );
