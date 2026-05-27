@@ -1,5 +1,6 @@
 "use server";
 
+import sharp from "sharp";
 import { z } from "zod";
 
 import { logger } from "@/lib/logger";
@@ -71,16 +72,38 @@ export async function uploadProof(
     };
   }
 
-  // Path: bills/{bill_id}/{member_id}-{timestamp}.{ext}
-  const ext = mimeToExt(file.type);
-  const path = `bills/${member.bill_id}/${member.member_id}-${Date.now()}.${ext}`;
+  // EXIF strip: decode + re-encode through sharp; metadata (GPS coords,
+  // device info, timestamps) is dropped by default. Auto-applies the EXIF
+  // orientation flag so portrait shots aren't sideways. Always output JPEG
+  // for consistency — minor quality loss on PNG/WebP is acceptable for
+  // payment screenshots, and HEIC -> JPEG normalizes the bucket.
+  const rawBytes = new Uint8Array(await file.arrayBuffer());
+  let processedBytes: Buffer;
+  let storedContentType = file.type;
+  let ext = mimeToExt(file.type);
+  try {
+    processedBytes = await sharp(rawBytes)
+      .rotate()
+      .jpeg({ quality: 85, mozjpeg: true })
+      .toBuffer();
+    storedContentType = "image/jpeg";
+    ext = "jpg";
+  } catch (err) {
+    // sharp can fail on HEIC if libheif isn't bundled; fall back to raw bytes
+    // (still acceptable — original mime type, EXIF intact but we logged it).
+    logger.warn("sharp EXIF strip failed; storing raw bytes", {
+      mime: file.type,
+      err: err instanceof Error ? err.message : "unknown",
+    });
+    processedBytes = Buffer.from(rawBytes);
+  }
 
-  const bytes = new Uint8Array(await file.arrayBuffer());
+  const path = `bills/${member.bill_id}/${member.member_id}-${Date.now()}.${ext}`;
   const admin = createSupabaseAdminClient();
   const { error: uploadError } = await admin.storage
     .from(BUCKET)
-    .upload(path, bytes, {
-      contentType: file.type,
+    .upload(path, processedBytes, {
+      contentType: storedContentType,
       upsert: false,
     });
 
