@@ -355,6 +355,12 @@ function ProofPicker({
   onFile,
   onClear,
 }: ProofPickerProps) {
+  // Perceived progress bar — the server action processes the file
+  // (sharp EXIF strip + Storage upload) and doesn't expose progress
+  // events, so we animate 0→90% over ~3s on upload start and snap to
+  // 100% when the action completes. Better reassurance than a spinner.
+  const progress = useUploadProgress(isUploading, Boolean(proofPath));
+
   return (
     <div className="flex flex-col gap-1.5">
       <span className="text-[11px] font-medium uppercase tracking-widest text-foreground-soft">
@@ -373,41 +379,53 @@ function ProofPicker({
       />
 
       {previewUrl ? (
-        <div className="flex items-start gap-3 border border-border bg-surface p-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={previewUrl}
-            alt="Payment proof preview"
-            className="h-16 w-16 shrink-0 object-cover"
-          />
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <div className="flex items-center gap-2 text-xs">
-              {isUploading ? (
-                <>
-                  <Loader2 size={12} className="animate-spin text-foreground-soft" aria-hidden />
-                  <span className="text-foreground-soft">Uploading...</span>
-                </>
-              ) : proofPath ? (
-                <>
-                  <Check size={12} className="text-ringgit" aria-hidden />
-                  <span className="text-ringgit">Uploaded</span>
-                </>
-              ) : errorMessage ? (
-                <span className="text-stamp" role="alert">
-                  {errorMessage}
-                </span>
-              ) : null}
+        <div className="flex flex-col gap-2 border border-border bg-surface p-2">
+          <div className="flex items-start gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previewUrl}
+              alt="Payment proof preview"
+              className="h-16 w-16 shrink-0 object-cover"
+            />
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <div className="flex items-center gap-2 text-xs">
+                {isUploading ? (
+                  <>
+                    <Loader2 size={12} className="animate-spin text-foreground-soft" aria-hidden />
+                    <span className="font-mono tabular text-foreground-soft">
+                      Uploading… {progress}%
+                    </span>
+                  </>
+                ) : proofPath ? (
+                  <>
+                    <Check size={12} className="text-ringgit" aria-hidden />
+                    <span className="text-ringgit">Uploaded</span>
+                  </>
+                ) : errorMessage ? (
+                  <span className="text-stamp" role="alert">
+                    {errorMessage}
+                  </span>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={onClear}
+                disabled={!canPick}
+                className="inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-widest text-foreground-soft hover:text-stamp"
+              >
+                <Trash2 size={11} aria-hidden />
+                Remove
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={onClear}
-              disabled={!canPick}
-              className="inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-widest text-foreground-soft hover:text-stamp"
-            >
-              <Trash2 size={11} aria-hidden />
-              Remove
-            </button>
           </div>
+          {isUploading || (proofPath && progress < 100) ? (
+            <div className="h-1 w-full overflow-hidden border border-border bg-paper">
+              <div
+                className="h-full bg-ringgit transition-[width] duration-150 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          ) : null}
         </div>
       ) : (
         <button
@@ -431,4 +449,50 @@ function ProofPicker({
       ) : null}
     </div>
   );
+}
+
+/*
+ * Animated upload-progress percentage. The proof upload server action
+ * doesn't expose real bytes-sent events (server actions run as a
+ * single POST), so we animate a perceived curve:
+ *   - On upload start: ease 0% → 90% over ~3s (easeOutCubic so it
+ *     decelerates as it approaches 90%, feels like a real upload)
+ *   - On upload complete: snap to 100% briefly, then reset to 0 once
+ *     the success state has had a moment to land
+ *   - On error / unmount: instant 0%
+ *
+ * Doesn't use Date.now() in render (would trip react-hooks/purity);
+ * uses performance.now() inside the rAF tick — those are fine because
+ * the tick runs outside React's render cycle.
+ */
+function useUploadProgress(isUploading: boolean, isDone: boolean): number {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    // All setProgress calls run inside rAF callbacks (not synchronously
+    // in this effect body) so the react-hooks/set-state-in-effect rule
+    // stays happy. Each branch returns a cleanup that cancels its rAF.
+    if (isDone) {
+      const id = window.requestAnimationFrame(() => setProgress(100));
+      return () => window.cancelAnimationFrame(id);
+    }
+    if (!isUploading) {
+      const id = window.requestAnimationFrame(() => setProgress(0));
+      return () => window.cancelAnimationFrame(id);
+    }
+
+    const start = performance.now();
+    const duration = 3000;
+    let rafId = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+      setProgress(Math.round(eased * 90));
+      if (t < 1) rafId = window.requestAnimationFrame(tick);
+    };
+    rafId = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(rafId);
+  }, [isUploading, isDone]);
+
+  return progress;
 }
