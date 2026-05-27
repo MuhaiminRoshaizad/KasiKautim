@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, useTransition } from "react";
+import { customAlphabet } from "nanoid";
 import {
   AlertTriangle,
   Camera,
@@ -23,15 +24,31 @@ import {
   type ScanReceiptState,
   type ScannedReceipt,
 } from "@/actions/scan-receipt";
+import type { BillItemInput } from "@/types/schemas";
 
 const INITIAL: ScanReceiptState = { ok: null, message: "" };
 
+// String IDs for items so they round-trip through DB JSONB unchanged.
+const newItemId = customAlphabet(
+  "0123456789abcdefghijklmnopqrstuvwxyz",
+  10,
+);
+
+export interface ScannerApplyPayload {
+  title: string;
+  total: string;
+  items: BillItemInput[];
+  taxCents: number;
+  discountCents: number;
+  currency: string;
+}
+
 interface ReceiptScannerProps {
-  onScanned: (args: { title: string; total: string }) => void;
+  onScanned: (payload: ScannerApplyPayload) => void;
 }
 
 interface EditableItem {
-  id: number;
+  id: string;
   name: string;
   price: string; // raw input ("12.50") to avoid float jitter while typing
 }
@@ -54,6 +71,14 @@ export function ReceiptScanner({ onScanned }: ReceiptScannerProps) {
           onScanned({
             title: result.receipt.merchant_name ?? "",
             total: fromCents(result.receipt.total_cents).toFixed(2),
+            items: result.receipt.items.map((it) => ({
+              id: newItemId(),
+              name: it.name,
+              price_cents: it.price_cents,
+            })),
+            taxCents: result.receipt.tax_cents ?? 0,
+            discountCents: result.receipt.discount_cents ?? 0,
+            currency: result.receipt.currency,
           });
         }
       }
@@ -71,9 +96,7 @@ export function ReceiptScanner({ onScanned }: ReceiptScannerProps) {
         receipt={state.receipt}
         onClear={reset}
         onRescan={() => inputRef.current?.click()}
-        onApply={(merchant, totalString) =>
-          onScanned({ title: merchant, total: totalString })
-        }
+        onApply={(payload) => onScanned(payload)}
       />
     );
   }
@@ -146,7 +169,7 @@ interface ScanResultProps {
   receipt: ScannedReceipt;
   onClear: () => void;
   onRescan: () => void;
-  onApply: (merchant: string, totalString: string) => void;
+  onApply: (payload: ScannerApplyPayload) => void;
 }
 
 const PRICE_PATTERN = /^\d*(\.\d{0,2})?$/;
@@ -157,8 +180,8 @@ function ScanResult({ receipt, onClear, onRescan, onApply }: ScanResultProps) {
 
   const [merchant, setMerchant] = useState(receipt.merchant_name ?? "");
   const [items, setItems] = useState<EditableItem[]>(() =>
-    receipt.items.map((it, i) => ({
-      id: i,
+    receipt.items.map((it) => ({
+      id: newItemId(),
       name: it.name,
       price: fromCents(it.price_cents).toFixed(2),
     })),
@@ -166,7 +189,6 @@ function ScanResult({ receipt, onClear, onRescan, onApply }: ScanResultProps) {
   const [total, setTotal] = useState<string>(
     fromCents(receipt.total_cents).toFixed(2),
   );
-  const nextIdRef = useRef(receipt.items.length);
 
   const itemsSumCents = useMemo(() => {
     return items.reduce((acc, it) => {
@@ -195,7 +217,7 @@ function ScanResult({ receipt, onClear, onRescan, onApply }: ScanResultProps) {
   const sumPlusTaxCents = baseForSum + taxCents - discountCents;
   const totalDiffersFromSum = sumPlusTaxCents !== totalCents;
 
-  const updateItem = (id: number, patch: Partial<EditableItem>) => {
+  const updateItem = (id: string, patch: Partial<EditableItem>) => {
     setItems((curr) =>
       curr.map((it) => {
         if (it.id !== id) return it;
@@ -207,13 +229,13 @@ function ScanResult({ receipt, onClear, onRescan, onApply }: ScanResultProps) {
     );
   };
 
-  const removeItem = (id: number) =>
+  const removeItem = (id: string) =>
     setItems((curr) => curr.filter((it) => it.id !== id));
 
   const addItem = () =>
     setItems((curr) => [
       ...curr,
-      { id: nextIdRef.current++, name: "", price: "" },
+      { id: newItemId(), name: "", price: "" },
     ]);
 
   const useSumAsTotal = () => {
@@ -221,7 +243,27 @@ function ScanResult({ receipt, onClear, onRescan, onApply }: ScanResultProps) {
   };
 
   const apply = () => {
-    onApply(merchant, total);
+    // Convert editable items to the server-side BillItemInput shape.
+    const itemsForApply: BillItemInput[] = items
+      .map((it) => {
+        let price_cents = 0;
+        try {
+          price_cents = toCents(it.price || "0");
+        } catch {
+          price_cents = 0;
+        }
+        return { id: it.id, name: it.name.trim(), price_cents };
+      })
+      .filter((it) => it.name.length > 0 && it.price_cents > 0);
+
+    onApply({
+      title: merchant,
+      total,
+      items: itemsForApply,
+      taxCents,
+      discountCents,
+      currency,
+    });
   };
 
   return (
