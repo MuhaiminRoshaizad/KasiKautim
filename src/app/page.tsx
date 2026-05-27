@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
@@ -63,19 +62,11 @@ export default function HomePage() {
           </p>
         </div>
 
-        <div className="relative flex-1">
-          {/* Background photo — moody receipt closeup behind the sample
-              card. Visible on every breakpoint as a textured background
-              for the hero; opacity drops on mobile so the receipt copy
-              still reads. */}
-          <Image
-            src="/landing-receipt.jpg"
-            alt=""
-            width={1600}
-            height={1067}
-            priority
-            className="pointer-events-none absolute inset-0 -z-10 h-full w-full select-none object-cover opacity-15 mix-blend-multiply sm:opacity-25 dark:opacity-10 dark:mix-blend-screen sm:dark:opacity-15"
-          />
+        <div className="flex-1">
+          {/* AmbientReceipts on the viewport margins (2xl+) already
+              carries the atmospheric weight — a literal receipt photo
+              behind this card was redundant and composed badly
+              (the card looked stickered onto the photo, not part of it). */}
           <SampleReceipt />
         </div>
       </section>

@@ -68,7 +68,11 @@ function ReceiptStrip({ side }: { side: "left" | "right" }) {
     <div
       aria-hidden
       className={cn(
-        "pointer-events-none fixed inset-y-0 z-0 hidden w-[18rem] select-none overflow-hidden opacity-60 motion-reduce:opacity-30 lg:block",
+        "pointer-events-none fixed inset-y-0 z-0 hidden w-[16rem] select-none overflow-hidden opacity-60 motion-reduce:opacity-30 2xl:block",
+        // Visibility gated at 2xl (1536px+) where the gutter beside the
+        // max-w-5xl content (1024px) is ≥256px = our strip width. At
+        // narrower widths (tablet, small desktop) the strip would
+        // collide with the hero content.
         side === "left" ? "left-0" : "right-0",
         // Soft fade-in at top and fade-out at bottom so the strip doesn't
         // collide hard with the viewport edges.
