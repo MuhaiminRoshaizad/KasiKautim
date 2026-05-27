@@ -16,9 +16,9 @@ Splitting a group bill in Malaysia today looks like this:
 1. Someone pays the full amount at the cashier.
 2. They open WhatsApp and start chasing 6 friends, one DM at a time.
 3. Half ignore, half "later la", one forgets entirely.
-4. A week later, the organizer is RM 80 out of pocket and emotionally drained.
+4. A week later, the tukang bayar is RM 80 out of pocket and emotionally drained.
 
-JomSplit replaces step 2–4 with **one link** dropped into the group chat. Recipients tap their name, pay via DuitNow / bank app / TNG, and mark themselves paid with an optional screenshot. The organizer sees who's settled and who's ghosting — in real time.
+JomSplit replaces step 2–4 with **one link** dropped into the group chat. Recipients tap their name, pay via DuitNow / bank app / TNG, and mark themselves paid with an optional screenshot. The tukang bayar sees who's settled and who's ghosting — in real time.
 
 ## What it does
 
@@ -27,7 +27,7 @@ JomSplit replaces step 2–4 with **one link** dropped into the group chat. Reci
 - **Claim-your-name flow** — recipients tap their name once on the bill page, get a private link bookmarked to their device. No signup.
 - **DuitNow + bank-app shortcuts** — copy DuitNow ID with one tap, or jump straight into TNG / Maybank2u via deep links.
 - **Payment audit** — when you mark paid, record the method (DuitNow, cash, TNG, etc.) + an optional note + a screenshot. EXIF stripped server-side before storage.
-- **Live dashboard** — Supabase Realtime pushes payment events; the organizer's bill view updates without a refresh.
+- **Live dashboard** — Supabase Realtime pushes payment events; the tukang bayar's bill view updates without a refresh.
 - **Per-bill report** — KPIs, member breakdown with paid/owed delta, activity timeline. Print-ready for chasing PDFs.
 - **Fully-collected celebration** — confetti + animated "PAID IN FULL" stamp when the last member settles.
 - **WhatsApp-ready OG image** — every bill link unfurls to a receipt-styled preview when shared.
@@ -39,7 +39,7 @@ JomSplit replaces step 2–4 with **one link** dropped into the group chat. Reci
 | Framework | Next.js 16.2 (App Router, RSC by default), TypeScript strict |
 | UI | Tailwind v4 with custom "Transactional Paper" palette tokens, Framer Motion |
 | Database & realtime | Supabase Postgres + Realtime + Storage |
-| Auth | Supabase Auth with Google OAuth (organizer only; recipients are link-credentialed) |
+| Auth | Supabase Auth with Google OAuth (tukang bayar only; recipients are link-credentialed) |
 | AI | Google Gemini 2.5 Flash via Vercel AI SDK |
 | OG image | next/og (1200×630 PNG, receipt-styled) |
 | Image processing | sharp (EXIF strip on payment proofs) |
@@ -55,7 +55,7 @@ Tests: vitest, 40/40 green. Money math, slug retry, members parser, item-split m
 3. Tap "Create a bill", scan or type in the items, add the squad.
 4. Hit "Send to group chat" — copy the link.
 5. Open the link in another browser/incognito as a recipient. Tap a name. Mark paid.
-6. Switch back to your organizer view — watch the progress bar move live.
+6. Switch back to your tukang bayar dashboard — watch the progress bar move live.
 
 ## Run locally
 

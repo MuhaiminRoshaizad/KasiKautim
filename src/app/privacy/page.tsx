@@ -74,9 +74,9 @@ export default function PrivacyPage() {
           <Section title="Where it lives">
             <p className="text-foreground">
               All data is stored in Supabase (Postgres + Storage) on infrastructure with row-level
-              security. Recipients see only the bill they have the link for. Organizers see only
-              bills they created. Service-role access is restricted to the server runtime — never
-              exposed to browser code.
+              security. Recipients see only the bill they have the link for. Tukang bayar sees
+              only bills they created. Service-role access is restricted to the server runtime —
+              never exposed to browser code.
             </p>
           </Section>
 
@@ -102,9 +102,9 @@ export default function PrivacyPage() {
 
           <Section title="Cookies & local storage">
             <p className="text-foreground">
-              {APP_NAME} stores a signed session cookie (Supabase Auth) so organizers stay logged
-              in, a claim cookie (30-day) so recipients keep their member identity on their
-              phone, and a theme preference in localStorage. No tracking cookies.
+              {APP_NAME} stores a signed session cookie (Supabase Auth) so the tukang bayar
+              stays signed in, a claim cookie (30-day) so recipients keep their member identity
+              on their phone, and a theme preference in localStorage. No tracking cookies.
             </p>
           </Section>
 
