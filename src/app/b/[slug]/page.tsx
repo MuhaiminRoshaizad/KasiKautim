@@ -31,10 +31,33 @@ export async function generateMetadata({ params }: PublicBillPageProps) {
   const { data } = await supabase
     .rpc("get_public_bill", { p_slug: slug })
     .maybeSingle<PublicBillRpc>();
-  if (!data) return { title: APP_NAME };
+
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const ogImage = `${siteUrl}/api/og/${slug}`;
+  const title = data?.title ?? APP_NAME;
+  const description = data
+    ? `Split bill on ${APP_NAME}. Tap your name to settle.`
+    : `${APP_NAME} — split bills without the awkward chasing.`;
+
   return {
-    title: data.title,
-    description: `Split bill on ${APP_NAME}. Tap your name to settle.`,
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url: `${siteUrl}/b/${slug}`,
+      siteName: APP_NAME,
+      images: [{ url: ogImage, width: 1200, height: 630 }],
+      type: "website",
+      locale: "en_MY",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage],
+    },
   };
 }
 
