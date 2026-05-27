@@ -85,3 +85,26 @@ export const ClaimMemberSchema = z.object({
   slug: z.string().trim().min(4).max(32),
   memberId: z.string().uuid(),
 });
+
+/**
+ * Profile update — both fields optional, both clearable.
+ * duitnow_id is loose-validated (5-50 chars, alphanumeric + a few separators)
+ * to accept phone numbers (+60123456789), DuitNow IDs, business IDs, etc.
+ */
+export const ProfileUpdateSchema = z.object({
+  displayName: z
+    .string()
+    .trim()
+    .max(LIMITS.memberName, `Keep it under ${LIMITS.memberName} characters.`)
+    .optional()
+    .or(z.literal("")),
+  duitnowId: z
+    .string()
+    .trim()
+    .max(50, "Keep it under 50 characters.")
+    .regex(/^[A-Za-z0-9+\-_.@ ]*$/, "Use letters, numbers, +, -, _, ., @, or spaces.")
+    .optional()
+    .or(z.literal("")),
+});
+
+export type ProfileUpdateForm = z.infer<typeof ProfileUpdateSchema>;
