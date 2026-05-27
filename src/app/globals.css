@@ -152,6 +152,16 @@ body {
     text-shadow: none !important;
   }
 
+  /* The universal bg-transparent rule above kills semantic fills we
+     actually need on paper. Restore them with selectors specific enough
+     to beat * even with !important on both sides. */
+  [role="progressbar"] {
+    background: white !important;
+  }
+  [role="progressbar"] > div {
+    background: black !important;
+  }
+
   /* Toggle helper visibility for print. */
   .print-hide { display: none !important; }
   .print-only { display: block !important; }
