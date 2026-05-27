@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, MessageCircle, Send } from "lucide-react";
+import { AlertTriangle, ArrowLeft, MessageCircle, Send } from "lucide-react";
 
 import { AmountDisplay } from "@/components/amount-display";
 import { buttonClassName } from "@/components/button";
@@ -9,13 +9,16 @@ import { InkStamp } from "@/components/ink-stamp";
 import { ProgressBar } from "@/components/progress-bar";
 import { ReceiptCard, ReceiptDivider } from "@/components/receipt-card";
 import { cn } from "@/lib/cn";
+import { unclaimedItems } from "@/lib/item-split";
 import {
   genericShareMessage,
+  privateItemModeShareMessage,
   privateShareMessage,
   whatsappShareUrl,
 } from "@/lib/share-messages";
 import { sumCents } from "@/lib/money";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { BillItem } from "@/types/db";
 
 import { RealtimeBillSubscription } from "./realtime-bill-subscription";
 
@@ -27,11 +30,10 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
   const { slug } = await params;
   const supabase = await createSupabaseServerClient();
 
-  // RLS denies if not the organizer; .single() returns an error.
   const { data: bill, error } = await supabase
     .from("bills")
     .select(
-      "id, slug, title, description, total_cents, currency, due_date, status, created_at",
+      "id, slug, title, description, total_cents, currency, due_date, status, created_at, split_mode, items, tax_cents, discount_cents",
     )
     .eq("slug", slug)
     .single();
@@ -41,18 +43,34 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
   const { data: members } = await supabase
     .from("bill_members")
     .select(
-      "id, name, amount_owed_cents, member_token, paid, paid_at, last_viewed_at, created_at",
+      "id, name, amount_owed_cents, member_token, paid, paid_at, paid_amount_cents, last_viewed_at, claimed_item_ids, created_at",
     )
     .eq("bill_id", bill.id)
     .order("created_at", { ascending: true });
 
   const memberList = members ?? [];
+  // For paid members, the "collected" total is what they actually transferred
+  // (paid_amount_cents). For non-paid, no contribution yet.
   const collectedCents = sumCents(
-    memberList.filter((m) => m.paid).map((m) => m.amount_owed_cents),
+    memberList
+      .filter((m) => m.paid)
+      .map((m) => m.paid_amount_cents ?? m.amount_owed_cents),
   );
   const totalCents = bill.total_cents;
   const progress = totalCents > 0 ? collectedCents / totalCents : 0;
   const allPaid = memberList.length > 0 && memberList.every((m) => m.paid);
+
+  const isItemMode = bill.split_mode === "item";
+  const items: BillItem[] = isItemMode ? (bill.items as BillItem[]) : [];
+  const unclaimed = isItemMode
+    ? unclaimedItems(
+        items,
+        memberList.map((m) => ({
+          memberId: m.id,
+          claimedItemIds: (m.claimed_item_ids as string[]) ?? [],
+        })),
+      )
+    : [];
 
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -83,8 +101,18 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
       <ReceiptCard className="p-6 sm:p-8">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="font-mono text-[10px] uppercase tracking-widest text-foreground-faint">
-              Bill
+            <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-foreground-faint">
+              <span>Bill</span>
+              <span
+                className={cn(
+                  "border px-1.5 py-0.5 text-[9px]",
+                  isItemMode
+                    ? "border-ringgit text-ringgit"
+                    : "border-border text-foreground-faint",
+                )}
+              >
+                {isItemMode ? "By items" : "Equal split"}
+              </span>
             </div>
             <h1 className="mt-1 font-display text-3xl uppercase leading-tight tracking-tight text-foreground sm:text-4xl">
               {bill.title}
@@ -104,6 +132,10 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
             <InkStamp label="Settled" variant="paid" rotate={-7} />
           ) : null}
         </div>
+
+        {unclaimed.length > 0 ? (
+          <UnclaimedWarning items={unclaimed} />
+        ) : null}
 
         <ReceiptDivider />
 
@@ -140,47 +172,88 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
           <CopyButton value={publicLink} label="Copy link" className="flex-1" />
         </div>
         <p className="mt-2 text-[11px] text-foreground-faint">
-          Drop the link once. Recipients tap their name on the bill page.
+          {isItemMode
+            ? "Drop the link once. Each person taps their items to compute their share."
+            : "Drop the link once. Recipients tap their name on the bill page."}
         </p>
 
-        <ReceiptDivider label={`${memberList.length} member${memberList.length === 1 ? "" : "s"}`} />
+        <ReceiptDivider
+          label={`${memberList.length} member${memberList.length === 1 ? "" : "s"}`}
+        />
 
         <ul className="space-y-2">
           {memberList.map((m) => {
             const memberLink = `${publicLink}?m=${m.member_token}`;
-            const privateWaUrl = whatsappShareUrl(
-              privateShareMessage({
-                name: m.name,
-                title: bill.title,
-                amountCents: m.amount_owed_cents,
-                link: memberLink,
-                dueDate: bill.due_date,
-              }),
-            );
+            const claimed = (m.claimed_item_ids as string[]) ?? [];
+            const claimedItems = items.filter((it) => claimed.includes(it.id));
+            const privateWaUrl = isItemMode
+              ? whatsappShareUrl(
+                  privateItemModeShareMessage({
+                    name: m.name,
+                    title: bill.title,
+                    link: memberLink,
+                    dueDate: bill.due_date,
+                  }),
+                )
+              : whatsappShareUrl(
+                  privateShareMessage({
+                    name: m.name,
+                    title: bill.title,
+                    amountCents: m.amount_owed_cents,
+                    link: memberLink,
+                    dueDate: bill.due_date,
+                  }),
+                );
+
+            // Paid members show their snapshotted paid amount; non-paid show
+            // the live computed share (or 0 in item-mode before claims).
+            const displayCents = m.paid
+              ? (m.paid_amount_cents ?? m.amount_owed_cents)
+              : m.amount_owed_cents;
+
             return (
               <li
                 key={m.id}
                 className="flex flex-wrap items-center justify-between gap-3 border border-border bg-surface px-3 py-3"
               >
-                <div className="flex min-w-0 items-center gap-3">
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "inline-block h-2 w-2",
-                      m.paid
-                        ? "bg-ringgit"
-                        : m.last_viewed_at
-                          ? "bg-highlighter"
-                          : "bg-foreground-faint",
-                    )}
-                  />
-                  <span className="truncate font-mono text-sm text-foreground">
-                    {m.name}
-                  </span>
+                <div className="flex min-w-0 flex-col gap-1">
+                  <div className="flex items-center gap-3">
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "inline-block h-2 w-2",
+                        m.paid
+                          ? "bg-ringgit"
+                          : m.last_viewed_at
+                            ? "bg-highlighter"
+                            : "bg-foreground-faint",
+                      )}
+                    />
+                    <span className="truncate font-mono text-sm text-foreground">
+                      {m.name}
+                    </span>
+                  </div>
+                  {isItemMode && claimedItems.length > 0 ? (
+                    <div className="ml-5 flex flex-wrap gap-1 text-[10px] text-foreground-faint">
+                      {claimedItems.map((it) => (
+                        <span
+                          key={it.id}
+                          className="border border-border px-1.5 py-0.5 font-mono"
+                          title={`${it.name} · RM ${(it.price_cents / 100).toFixed(2)}`}
+                        >
+                          {it.name}
+                        </span>
+                      ))}
+                    </div>
+                  ) : isItemMode && !m.paid ? (
+                    <span className="ml-5 text-[10px] text-foreground-faint">
+                      No items tapped yet
+                    </span>
+                  ) : null}
                 </div>
                 <div className="flex items-center gap-3">
                   <AmountDisplay
-                    cents={m.amount_owed_cents}
+                    cents={displayCents}
                     size="sm"
                     muted={!m.paid}
                   />
@@ -194,7 +267,7 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
                     href={privateWaUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label={`Send ${m.name}'s share to WhatsApp`}
+                    aria-label={`Send ${m.name}'s link to WhatsApp`}
                     className={cn(
                       buttonClassName({
                         variant: "secondary",
@@ -218,6 +291,30 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
           })}
         </ul>
       </ReceiptCard>
+    </div>
+  );
+}
+
+function UnclaimedWarning({ items }: { items: BillItem[] }) {
+  const totalCents = items.reduce((a, it) => a + it.price_cents, 0);
+  return (
+    <div className="mt-4 flex items-start gap-2 border border-highlighter/60 bg-highlighter/10 p-3 text-xs">
+      <AlertTriangle
+        size={14}
+        className="mt-0.5 shrink-0 text-foreground"
+        aria-hidden
+      />
+      <div>
+        <p className="font-medium text-foreground">
+          {items.length} item{items.length === 1 ? "" : "s"} unclaimed (
+          <AmountDisplay cents={totalCents} size="sm" className="text-foreground" />
+          )
+        </p>
+        <p className="mt-1 text-foreground-soft">
+          {items.map((it) => it.name).join(", ")} — nobody has tapped these yet.
+          Nudge the squad or claim them yourself by visiting the share link.
+        </p>
+      </div>
     </div>
   );
 }
