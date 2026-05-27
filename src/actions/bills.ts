@@ -220,3 +220,29 @@ export async function createBill(
   revalidatePath("/dashboard");
   redirect(`/dashboard/${slug}`);
 }
+
+/*
+ * Tukang bayar deletes their own bill. Cascades to bill_members and
+ * payment_events via the ON DELETE CASCADE in 0001_init.sql; payment
+ * proof images in Storage are NOT auto-cleaned (documented in
+ * README "Known limitations"). RLS scopes DELETE to the bill's
+ * organizer_id; an attempt against someone else's bill silently
+ * affects 0 rows and we fall through to the redirect.
+ */
+export async function deleteBill(formData: FormData): Promise<void> {
+  const slug = formData.get("slug");
+  if (typeof slug !== "string" || slug.length < 4 || slug.length > 32) {
+    logger.warn("deleteBill called with invalid slug");
+    redirect("/dashboard");
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.from("bills").delete().eq("slug", slug);
+  if (error) {
+    logger.error("deleteBill failed", { code: error.code, message: error.message });
+    redirect(`/dashboard/${slug}?error=delete_failed`);
+  }
+
+  revalidatePath("/dashboard");
+  redirect("/dashboard");
+}
