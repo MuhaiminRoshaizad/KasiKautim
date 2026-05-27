@@ -9,7 +9,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { LoginForm } from "./login-form";
 
 interface LoginPageProps {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; error?: string }>;
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
@@ -18,7 +18,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { next } = await searchParams;
+  const { next, error } = await searchParams;
 
   if (user) {
     redirect(next?.startsWith("/") ? next : "/dashboard");
@@ -46,13 +46,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               Welcome back lah
             </h1>
             <p className="mt-2 text-sm text-foreground-soft">
-              Magic-link signin. New here? Same form makes your account.
+              Sign in with Google. New here? Same button makes your account.
             </p>
           </div>
 
           <ReceiptDivider />
 
-          <LoginForm next={next} />
+          <LoginForm next={next} error={error} />
         </ReceiptCard>
       </div>
     </main>
