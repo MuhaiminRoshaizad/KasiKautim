@@ -16,6 +16,7 @@ import type {
 } from "@/types/db";
 
 import { ClaimRow } from "./claim-row";
+import { ItemPicker } from "./item-picker";
 import { MarkPaidPanel } from "./mark-paid-panel";
 
 interface PublicBillPageProps {
@@ -83,27 +84,12 @@ async function ClaimView({ slug, bill }: { slug: string; bill: PublicBillRpc }) 
   const list = (members as PublicBillMemberRpc[] | null) ?? [];
   const collectedCents = list
     .filter((m) => m.paid)
-    .reduce((acc, m) => acc + m.amount_owed_cents, 0);
+    .reduce((acc, m) => acc + (m.paid_amount_cents ?? m.amount_owed_cents), 0);
   const progress = bill.total_cents > 0 ? collectedCents / bill.total_cents : 0;
 
   return (
     <ReceiptCard tissue className="p-6 sm:p-8">
-      <div className="font-mono text-[10px] uppercase tracking-widest text-foreground-faint">
-        {bill.organizer_display_name
-          ? `Bill from ${bill.organizer_display_name}`
-          : "Shared bill"}
-      </div>
-      <h1 className="mt-1 font-handwritten text-4xl leading-tight tracking-tight text-foreground sm:text-5xl">
-        {bill.title}
-      </h1>
-      {bill.description ? (
-        <p className="mt-2 text-sm text-foreground-soft">{bill.description}</p>
-      ) : null}
-      {bill.due_date ? (
-        <p className="mt-2 font-mono text-xs uppercase tracking-widest text-foreground-faint">
-          Due {bill.due_date}
-        </p>
-      ) : null}
+      <BillHeader bill={bill} />
 
       <ReceiptDivider />
 
@@ -162,44 +148,58 @@ async function MemberView({
     .rpc("get_member_by_token", { p_token: token })
     .maybeSingle<MemberByTokenRpc>();
 
-  // Token doesn't match anything (or belongs to a different bill) — fall back
-  // to the claim flow without leaking which case it was.
   if (!member || member.bill_slug !== slug) {
     return <ClaimView slug={slug} bill={bill} />;
   }
 
-  // Fire-and-await read-receipt. Cheap; one row write.
   await touchMemberViewed(token);
+
+  // Item-mode bills need the full members list for co-claimer chips + math.
+  const isItemMode = bill.split_mode === "item";
+  let allMembers: PublicBillMemberRpc[] = [];
+  if (isItemMode) {
+    const { data } = await supabase.rpc("get_public_bill_members", {
+      p_slug: slug,
+    });
+    allMembers = (data as PublicBillMemberRpc[] | null) ?? [];
+  }
 
   return (
     <ReceiptCard tissue className="p-6 sm:p-8">
-      <div className="font-mono text-[10px] uppercase tracking-widest text-foreground-faint">
-        {bill.organizer_display_name
-          ? `Bill from ${bill.organizer_display_name}`
-          : "Shared bill"}
-      </div>
-      <h1 className="mt-1 font-handwritten text-4xl leading-tight tracking-tight text-foreground sm:text-5xl">
-        {bill.title}
-      </h1>
-      {bill.description ? (
-        <p className="mt-2 text-sm text-foreground-soft">{bill.description}</p>
-      ) : null}
+      <BillHeader bill={bill} />
 
       <ReceiptDivider />
 
-      <div className="text-center">
-        <div className="font-mono text-[10px] uppercase tracking-widest text-foreground-faint">
-          Your share, {member.name}
+      {isItemMode ? (
+        <ItemPicker
+          billId={bill.bill_id}
+          token={token}
+          meId={member.member_id}
+          items={bill.items}
+          members={allMembers.map((m) => ({
+            id: m.member_id,
+            name: m.name,
+            claimedItemIds: m.claimed_item_ids ?? [],
+            paid: m.paid,
+          }))}
+          taxCents={bill.tax_cents}
+          discountCents={bill.discount_cents}
+        />
+      ) : (
+        <div className="text-center">
+          <div className="font-mono text-[10px] uppercase tracking-widest text-foreground-faint">
+            Your share, {member.name}
+          </div>
+          <div className="mt-2">
+            <AmountDisplay cents={member.amount_owed_cents} size="xl" />
+          </div>
+          {bill.due_date ? (
+            <p className="mt-2 font-mono text-xs uppercase tracking-widest text-foreground-faint">
+              Due {bill.due_date}
+            </p>
+          ) : null}
         </div>
-        <div className="mt-2">
-          <AmountDisplay cents={member.amount_owed_cents} size="xl" />
-        </div>
-        {bill.due_date ? (
-          <p className="mt-2 font-mono text-xs uppercase tracking-widest text-foreground-faint">
-            Due {bill.due_date}
-          </p>
-        ) : null}
-      </div>
+      )}
 
       {bill.organizer_duitnow_id ? (
         <>
@@ -220,13 +220,13 @@ async function MemberView({
             />
           </div>
           <p className="mt-2 text-[11px] text-foreground-faint">
-            Open your banking app, paste the DuitNow ID, transfer{" "}
+            Transfer{" "}
             <AmountDisplay
               cents={member.amount_owed_cents}
               size="sm"
               className="text-foreground"
-            />
-            .
+            />{" "}
+            to the DuitNow ID above, then tap &quot;I&apos;ve paid&quot;.
           </p>
         </>
       ) : null}
@@ -238,7 +238,34 @@ async function MemberView({
         initiallyPaid={member.paid}
         initialPaidAt={member.paid_at}
         organizerName={bill.organizer_display_name}
+        canPay={!isItemMode || (member.claimed_item_ids?.length ?? 0) > 0}
+        amountOwedCents={member.amount_owed_cents}
       />
     </ReceiptCard>
+  );
+}
+
+// ---------- Shared bill header (kopitiam tissue + handwritten title) ----------
+
+function BillHeader({ bill }: { bill: PublicBillRpc }) {
+  return (
+    <>
+      <div className="font-mono text-[10px] uppercase tracking-widest text-foreground-faint">
+        {bill.organizer_display_name
+          ? `Bill from ${bill.organizer_display_name}`
+          : "Shared bill"}
+      </div>
+      <h1 className="mt-1 font-handwritten text-4xl leading-tight tracking-tight text-foreground sm:text-5xl">
+        {bill.title}
+      </h1>
+      {bill.description ? (
+        <p className="mt-2 text-sm text-foreground-soft">{bill.description}</p>
+      ) : null}
+      {bill.due_date ? (
+        <p className="mt-2 font-mono text-xs uppercase tracking-widest text-foreground-faint">
+          Due {bill.due_date}
+        </p>
+      ) : null}
+    </>
   );
 }
