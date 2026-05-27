@@ -17,6 +17,8 @@ import {
 import { sumCents } from "@/lib/money";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+import { RealtimeBillSubscription } from "./realtime-bill-subscription";
+
 interface BillDetailPageProps {
   params: Promise<{ slug: string }>;
 }
@@ -61,6 +63,7 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
+      <RealtimeBillSubscription billId={bill.id} />
       <div className="flex items-center justify-between">
         <Link
           href="/dashboard"
