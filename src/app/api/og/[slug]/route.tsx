@@ -57,15 +57,17 @@ export async function GET(
 async function loadPayload(slug: string): Promise<OgPayload | null> {
   try {
     const supabase = await createSupabaseServerClient();
-    const { data: bill } = await supabase
-      .rpc("get_public_bill", { p_slug: slug })
-      .maybeSingle<PublicBillRpc>();
+    // Parallel: WhatsApp's link-preview scraper times out fast (~3-5s).
+    // Sequential awaits were adding a needless Supabase round-trip.
+    const [billResult, membersResult] = await Promise.all([
+      supabase
+        .rpc("get_public_bill", { p_slug: slug })
+        .maybeSingle<PublicBillRpc>(),
+      supabase.rpc("get_public_bill_members", { p_slug: slug }),
+    ]);
+    const bill = billResult.data;
     if (!bill) return null;
-
-    const { data: members } = await supabase.rpc("get_public_bill_members", {
-      p_slug: slug,
-    });
-    const memberList = (members as PublicBillMemberRpc[] | null) ?? [];
+    const memberList = (membersResult.data as PublicBillMemberRpc[] | null) ?? [];
     const paidMembers = memberList.filter((m) => m.paid);
     const collectedCents = paidMembers.reduce(
       (acc, m) => acc + (m.paid_amount_cents ?? m.amount_owed_cents),
