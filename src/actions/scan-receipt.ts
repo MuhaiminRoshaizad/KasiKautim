@@ -164,10 +164,28 @@ export async function scanReceipt(
       ],
     });
 
+    // Gemini's prompt instructs it to return empty items + zero total
+    // when the image is unreadable / not a receipt (rather than inventing
+    // values). Catch that here so the UI doesn't show "✓ receipt math
+    // reconciles" for what is actually "we saw nothing".
+    const items = expandQuantityLines(object.items);
+    const looksLikeReceipt =
+      items.length > 0 ||
+      object.total_cents > 0 ||
+      (object.merchant_name?.trim()?.length ?? 0) > 0;
+
+    if (!looksLikeReceipt) {
+      return {
+        ok: false,
+        message:
+          "That doesn't look like a receipt. Try a clearer photo, or fill in items manually below.",
+      };
+    }
+
     return {
       ok: true,
       message: "Scanned.",
-      receipt: { ...object, items: expandQuantityLines(object.items) },
+      receipt: { ...object, items },
     };
   } catch (err) {
     if (NoObjectGeneratedError.isInstance(err)) {
