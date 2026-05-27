@@ -10,9 +10,13 @@ import { ReceiptCard, ReceiptDivider } from "@/components/receipt-card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { APP_NAME } from "@/lib/constants";
 
+import { AmbientReceipts } from "./ambient-receipts";
+
 export default function HomePage() {
   return (
-    <main className="relative mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-5 pt-6 pb-12 sm:px-8">
+    <>
+      <AmbientReceipts />
+      <main className="relative z-10 mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-5 pt-6 pb-12 sm:px-8">
       <header className="flex items-center justify-between">
         <Link
           href="/"
@@ -94,7 +98,8 @@ export default function HomePage() {
           </nav>
         </div>
       </footer>
-    </main>
+      </main>
+    </>
   );
 }
 
