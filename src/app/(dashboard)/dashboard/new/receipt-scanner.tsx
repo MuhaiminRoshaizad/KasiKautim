@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState, useTransition } from "react";
 import {
+  AlertTriangle,
   Camera,
   Check,
   Loader2,
@@ -15,6 +16,7 @@ import {
 import { AmountDisplay } from "@/components/amount-display";
 import { ReceiptDivider } from "@/components/receipt-card";
 import { cn } from "@/lib/cn";
+import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { fromCents, toCents } from "@/lib/money";
 import {
   scanReceipt,
@@ -47,10 +49,13 @@ export function ReceiptScanner({ onScanned }: ReceiptScannerProps) {
       const result = await scanReceipt(INITIAL, fd);
       setState(result);
       if (result.ok && result.receipt) {
-        onScanned({
-          title: result.receipt.merchant_name ?? "",
-          total: fromCents(result.receipt.total_cents).toFixed(2),
-        });
+        // Only auto-fill the form if the receipt is in our supported currency.
+        if (result.receipt.currency === DEFAULT_CURRENCY) {
+          onScanned({
+            title: result.receipt.merchant_name ?? "",
+            total: fromCents(result.receipt.total_cents).toFixed(2),
+          });
+        }
       }
     });
   };
@@ -66,9 +71,9 @@ export function ReceiptScanner({ onScanned }: ReceiptScannerProps) {
         receipt={state.receipt}
         onClear={reset}
         onRescan={() => inputRef.current?.click()}
-        onApply={(merchant, totalString) => onScanned({ title: merchant, total: totalString })}
-        fileInputRef={inputRef}
-        onFile={handleFile}
+        onApply={(merchant, totalString) =>
+          onScanned({ title: merchant, total: totalString })
+        }
       />
     );
   }
@@ -142,18 +147,14 @@ interface ScanResultProps {
   onClear: () => void;
   onRescan: () => void;
   onApply: (merchant: string, totalString: string) => void;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
-  onFile: (file: File) => void;
 }
 
 const PRICE_PATTERN = /^\d*(\.\d{0,2})?$/;
 
-function ScanResult({
-  receipt,
-  onClear,
-  onRescan,
-  onApply,
-}: ScanResultProps) {
+function ScanResult({ receipt, onClear, onRescan, onApply }: ScanResultProps) {
+  const currency = receipt.currency || DEFAULT_CURRENCY;
+  const isSupportedCurrency = currency === DEFAULT_CURRENCY;
+
   const [merchant, setMerchant] = useState(receipt.merchant_name ?? "");
   const [items, setItems] = useState<EditableItem[]>(() =>
     receipt.items.map((it, i) => ({
@@ -167,7 +168,6 @@ function ScanResult({
   );
   const nextIdRef = useRef(receipt.items.length);
 
-  // Computed sums.
   const itemsSumCents = useMemo(() => {
     return items.reduce((acc, it) => {
       try {
@@ -179,8 +179,8 @@ function ScanResult({
   }, [items]);
 
   const taxCents = receipt.tax_cents ?? 0;
-
-  const itemsPlusTaxCents = itemsSumCents + taxCents;
+  const discountCents = receipt.discount_cents ?? 0;
+  const subtotalScannedCents = receipt.subtotal_cents;
 
   let totalCents = 0;
   try {
@@ -189,17 +189,20 @@ function ScanResult({
     totalCents = 0;
   }
 
-  const totalDoesNotMatch = itemsPlusTaxCents !== totalCents && itemsSumCents > 0;
+  // Sum-as-total uses the receipt's printed subtotal when available
+  // (more reliable than items extracted), falling back to items sum.
+  const baseForSum = subtotalScannedCents ?? itemsSumCents;
+  const sumPlusTaxCents = baseForSum + taxCents - discountCents;
+  const totalDiffersFromSum = sumPlusTaxCents !== totalCents;
 
   const updateItem = (id: number, patch: Partial<EditableItem>) => {
     setItems((curr) =>
       curr.map((it) => {
         if (it.id !== id) return it;
-        const next = { ...it, ...patch };
         if (patch.price !== undefined && !PRICE_PATTERN.test(patch.price)) {
-          return it; // reject invalid char
+          return it;
         }
-        return next;
+        return { ...it, ...patch };
       }),
     );
   };
@@ -214,7 +217,7 @@ function ScanResult({
     ]);
 
   const useSumAsTotal = () => {
-    setTotal(fromCents(itemsPlusTaxCents).toFixed(2));
+    setTotal(fromCents(sumPlusTaxCents).toFixed(2));
   };
 
   const apply = () => {
@@ -226,7 +229,7 @@ function ScanResult({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-xs font-medium uppercase tracking-widest text-ringgit">
-            ✓ Scanned · {receipt.currency}
+            ✓ Scanned · {currency}
           </div>
           <input
             type="text"
@@ -247,14 +250,17 @@ function ScanResult({
         </button>
       </div>
 
-      <ReceiptDivider label={`${items.length} ${items.length === 1 ? "item" : "items"} (editable)`} />
+      {!isSupportedCurrency ? (
+        <UnsupportedCurrencyBanner currency={currency} />
+      ) : null}
+
+      <ReceiptDivider
+        label={`${items.length} ${items.length === 1 ? "item" : "items"} (editable)`}
+      />
 
       <ul className="max-h-56 space-y-1.5 overflow-y-auto">
         {items.map((it) => (
-          <li
-            key={it.id}
-            className="flex items-center gap-2 font-mono text-xs"
-          >
+          <li key={it.id} className="flex items-center gap-2 font-mono text-xs">
             <input
               type="text"
               value={it.name}
@@ -264,7 +270,7 @@ function ScanResult({
               className="min-w-0 flex-1 border border-transparent bg-transparent px-1 py-0.5 text-foreground placeholder:text-foreground-faint hover:border-border focus:border-foreground focus:bg-surface focus:outline-none"
               aria-label="Item name"
             />
-            <span className="text-foreground-faint">RM</span>
+            <span className="text-foreground-faint">{currency}</span>
             <input
               type="text"
               inputMode="decimal"
@@ -298,10 +304,11 @@ function ScanResult({
       <ReceiptDivider label="Breakdown" />
 
       <Breakdown
+        currency={currency}
         itemsSumCents={itemsSumCents}
         taxCents={taxCents}
-        discountCents={receipt.discount_cents ?? 0}
-        subtotalScannedCents={receipt.subtotal_cents}
+        discountCents={discountCents}
+        subtotalScannedCents={subtotalScannedCents}
         totalCents={totalCents}
       />
 
@@ -313,7 +320,7 @@ function ScanResult({
           Final amount to charge
         </span>
         <div className="flex flex-1 items-center justify-end gap-2">
-          <span className="font-mono text-xs text-foreground-faint">RM</span>
+          <span className="font-mono text-xs text-foreground-faint">{currency}</span>
           <input
             type="text"
             inputMode="decimal"
@@ -327,16 +334,21 @@ function ScanResult({
         </div>
       </div>
 
-      {totalDoesNotMatch ? (
+      {totalDiffersFromSum && sumPlusTaxCents > 0 ? (
         <button
           type="button"
           onClick={useSumAsTotal}
           className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-widest text-ringgit underline-offset-4 hover:underline"
-          title="Replace the total with sum of items + tax. Use when the scanned total looks wrong."
+          title={
+            subtotalScannedCents != null
+              ? "Replace total with: receipt's printed subtotal + tax − discount."
+              : "Replace total with: items sum + tax − discount."
+          }
         >
           <RotateCcw size={11} aria-hidden />
-          Use sum{taxCents > 0 ? " + tax" : ""} as total ({" "}
-          <AmountDisplay cents={itemsPlusTaxCents} size="sm" muted />
+          Use {subtotalScannedCents != null ? "receipt subtotal" : "items sum"}
+          {taxCents > 0 ? " + tax" : ""} as total ({" "}
+          <AmountDisplay cents={sumPlusTaxCents} size="sm" muted />
           {" "})
         </button>
       ) : null}
@@ -345,7 +357,16 @@ function ScanResult({
         <button
           type="button"
           onClick={apply}
-          className="inline-flex h-10 flex-1 items-center justify-center gap-2 border border-ringgit bg-ringgit px-4 text-sm font-medium text-paper transition-colors hover:bg-ringgit/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ringgit focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          disabled={!isSupportedCurrency}
+          className={cn(
+            "inline-flex h-10 flex-1 items-center justify-center gap-2 border border-ringgit bg-ringgit px-4 text-sm font-medium text-paper transition-colors hover:bg-ringgit/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ringgit focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+            "disabled:cursor-not-allowed disabled:opacity-50",
+          )}
+          title={
+            isSupportedCurrency
+              ? undefined
+              : `JomSplit only supports ${DEFAULT_CURRENCY} bills.`
+          }
         >
           <Check size={14} aria-hidden />
           Apply to form
@@ -363,27 +384,58 @@ function ScanResult({
   );
 }
 
+function UnsupportedCurrencyBanner({ currency }: { currency: string }) {
+  return (
+    <div className="mt-3 flex items-start gap-2 border border-stamp/40 bg-stamp-soft/40 p-3 text-xs">
+      <AlertTriangle size={14} className="mt-0.5 shrink-0 text-stamp" aria-hidden />
+      <div>
+        <p className="font-medium text-stamp">
+          This receipt is in {currency} — JomSplit only supports {DEFAULT_CURRENCY}.
+        </p>
+        <p className="mt-1 text-foreground-soft">
+          You can browse the scan below, but &quot;Apply to form&quot; is
+          disabled to prevent currency mismatches. Convert the total to{" "}
+          {DEFAULT_CURRENCY} manually if you want to use this bill.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function Row({
   label,
   hint,
   tooltip,
+  highlight,
   children,
 }: {
   label: string;
   hint?: string;
   tooltip?: string;
+  highlight?: "warning" | "ok";
   children: React.ReactNode;
 }) {
+  const hintColor =
+    highlight === "warning"
+      ? "text-stamp"
+      : highlight === "ok"
+        ? "text-ringgit"
+        : "text-foreground-faint";
   return (
     <div className="flex items-baseline justify-between gap-3 font-mono text-xs">
       <dt className="flex min-w-0 items-baseline gap-2 text-foreground-soft">
-        <span title={tooltip} className={tooltip ? "cursor-help underline decoration-dotted decoration-foreground-faint/40 underline-offset-2" : undefined}>
+        <span
+          title={tooltip}
+          className={
+            tooltip
+              ? "cursor-help underline decoration-dotted decoration-foreground-faint/40 underline-offset-2"
+              : undefined
+          }
+        >
           {label}
         </span>
         {hint ? (
-          <span className="truncate text-[10px] text-foreground-faint">
-            {hint}
-          </span>
+          <span className={cn("truncate text-[10px]", hintColor)}>{hint}</span>
         ) : null}
       </dt>
       <dd className="tabular shrink-0">{children}</dd>
@@ -392,6 +444,7 @@ function Row({
 }
 
 interface BreakdownProps {
+  currency: string;
   itemsSumCents: number;
   taxCents: number;
   discountCents: number;
@@ -400,53 +453,88 @@ interface BreakdownProps {
 }
 
 /**
- * Interpret the relationship between items / tax / discount / total and label
- * each row with what it actually represents on the user's receipt.
+ * The receipt's *printed* subtotal/tax/total are the source of truth.
+ * Items-extracted is shown as a *check* row — if it doesn't match the
+ * receipt's subtotal, that's an OCR error and the user should fix the items.
  *
- * Three common Malaysian receipt patterns:
- *   1. Tax-inclusive  : items_sum                = total  (tax shown for audit only)
- *   2. Tax-exclusive  : items_sum + tax          = total  (tax added on top)
- *   3. With discount  : items_sum - discount (+t)= total
+ * Reconciliation runs on the receipt's printed numbers, not on extracted items.
+ * Two common patterns:
+ *   - Tax added on top : subtotal + tax − discount = total
+ *   - Tax already in   : subtotal − discount       = total  (tax shown for audit)
+ * Both pass reconciliation; the tax-row hint tells the user which one applies.
  *
- * A 1-cent rounding tolerance lets us match real-world receipts that round
- * down to the nearest 5 sen.
+ * A 5-cent tolerance covers the standard Malaysian 5-sen rounding.
  */
 function Breakdown({
+  currency,
   itemsSumCents,
   taxCents,
   discountCents,
   subtotalScannedCents,
   totalCents,
 }: BreakdownProps) {
-  const TOL = 5; // 5-cent tolerance for rounding-down
+  const TOL = 5;
   const close = (a: number, b: number) => Math.abs(a - b) <= TOL;
 
-  const itemsOnly = close(itemsSumCents - discountCents, totalCents);
-  const taxAddedOnTop = close(
-    itemsSumCents - discountCents + taxCents,
-    totalCents,
-  );
-  const taxIncluded =
-    !taxAddedOnTop && taxCents > 0 && itemsOnly;
+  // Source-of-truth selection: prefer the receipt's printed subtotal.
+  const truthSubtotal = subtotalScannedCents ?? itemsSumCents;
 
-  const reconciles = itemsOnly || taxAddedOnTop;
+  const taxAddedOnTop = close(truthSubtotal + taxCents - discountCents, totalCents);
+  const taxIncluded =
+    !taxAddedOnTop &&
+    taxCents > 0 &&
+    close(truthSubtotal - discountCents, totalCents);
+  const reconciles = taxAddedOnTop || taxIncluded || taxCents === 0;
+
+  // Items-extracted check: does the items list match the receipt's printed subtotal?
+  const itemsMatchSubtotal =
+    subtotalScannedCents == null
+      ? null
+      : close(itemsSumCents, subtotalScannedCents);
 
   const taxHint = taxIncluded
     ? "already in item prices"
     : taxAddedOnTop
       ? "added on top"
       : taxCents > 0
-        ? undefined
+        ? "doesn't match — check receipt"
         : undefined;
 
   return (
     <dl className="space-y-1">
+      {/* Items-extracted check row (top — it's our OCR output, may need editing) */}
       <Row
-        label="Items add up to"
-        tooltip="Sum of all the line-items in the editable list above."
+        label="Items I extracted"
+        hint={
+          itemsMatchSubtotal === false
+            ? "differs from receipt — fix items above"
+            : itemsMatchSubtotal === true
+              ? "matches receipt subtotal"
+              : undefined
+        }
+        highlight={
+          itemsMatchSubtotal === false
+            ? "warning"
+            : itemsMatchSubtotal === true
+              ? "ok"
+              : undefined
+        }
+        tooltip="Sum of the items I OCR'd from the receipt. If this doesn't match the receipt's printed subtotal, some items above were misread — edit the prices/names to fix."
       >
         <AmountDisplay cents={itemsSumCents} size="sm" muted />
       </Row>
+
+      <ReceiptDivider />
+
+      {/* The receipt's printed numbers — the source of truth */}
+      {subtotalScannedCents != null ? (
+        <Row
+          label="Subtotal printed on receipt"
+          tooltip="The 'Subtotal' line printed on the receipt itself. This is the source of truth — trust it over items-extracted when they disagree."
+        >
+          <AmountDisplay cents={subtotalScannedCents} size="sm" muted />
+        </Row>
+      ) : null}
 
       {discountCents > 0 ? (
         <Row
@@ -465,40 +553,29 @@ function Breakdown({
           hint={taxHint}
           tooltip={
             taxIncluded
-              ? "Tax printed on the receipt — but on this receipt it's already inside the item prices, so don't add it on top."
+              ? `Tax printed on the receipt — but on this receipt it's already inside the item prices, so don't add it on top. Math: subtotal = total = ${currency} ${(totalCents / 100).toFixed(2)}.`
               : taxAddedOnTop
-                ? "Tax printed on the receipt and added on top of items to reach the total."
-                : "Tax printed on the receipt. The math doesn't cleanly reconcile — double-check the total."
+                ? `Tax printed on the receipt and added on top of subtotal to reach the total. Math: subtotal + tax - discount = total.`
+                : `Tax printed on the receipt. The math doesn't cleanly reconcile — double-check the total below.`
           }
         >
           <AmountDisplay cents={taxCents} size="sm" muted />
         </Row>
       ) : null}
 
-      {subtotalScannedCents != null &&
-      Math.abs(subtotalScannedCents - itemsSumCents) > TOL ? (
-        <Row
-          label="Receipt's subtotal line"
-          hint="audit info, not what to charge"
-          tooltip="The 'Subtotal' or 'Taxable Amount' line printed on the receipt. Differs from the items sum, which usually means tax is already baked in (Malaysian-style)."
-        >
-          <AmountDisplay cents={subtotalScannedCents} size="sm" muted />
-        </Row>
-      ) : null}
-
       {reconciles ? (
         <p
           className="pt-1 text-[10px] text-ringgit"
-          title="Items, tax, and discount cleanly add up to the total."
+          title="The receipt's printed numbers add up cleanly to the total."
         >
-          ✓ math reconciles
+          ✓ receipt math reconciles
         </p>
       ) : (
         <p
           className="pt-1 text-[10px] text-stamp"
-          title="Items, tax, and discount don't cleanly add up to the total. Double-check before applying — the scanner may have misread something."
+          title="The receipt's printed subtotal + tax doesn't add up to the printed total. Manually verify before applying."
         >
-          ⚠ math doesn&apos;t reconcile — check the total
+          ⚠ receipt math doesn&apos;t reconcile — verify the total
         </p>
       )}
     </dl>
