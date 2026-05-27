@@ -15,6 +15,8 @@ import {
   type CreateBillForm,
 } from "@/types/schemas";
 
+import { ReceiptScanner } from "./receipt-scanner";
+
 const FIELD_INPUT =
   "h-12 w-full border border-border bg-surface px-3 font-sans text-base text-foreground placeholder:text-foreground-faint focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 focus:ring-offset-background";
 
@@ -26,6 +28,7 @@ export function CreateBillFormIsland() {
     register,
     handleSubmit,
     setError,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<CreateBillForm>({
     resolver: zodResolver(CreateBillFormSchema),
@@ -90,6 +93,15 @@ export function CreateBillFormIsland() {
       </p>
 
       <ReceiptDivider />
+
+      <ReceiptScanner
+        onScanned={({ title, total }) => {
+          if (title) setValue("title", title, { shouldValidate: true });
+          if (total) setValue("total", total, { shouldValidate: true });
+        }}
+      />
+
+      <ReceiptDivider label="or fill in" />
 
       <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
         <Field
