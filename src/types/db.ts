@@ -18,6 +18,14 @@ export interface ProfileRow {
   updated_at: Iso;
 }
 
+export type SplitMode = "equal" | "item";
+
+export interface BillItem {
+  id: string;
+  name: string;
+  price_cents: number;
+}
+
 export interface BillRow {
   id: string;
   slug: string;
@@ -28,6 +36,10 @@ export interface BillRow {
   currency: string;
   due_date: IsoDate | null;
   status: BillStatus;
+  split_mode: SplitMode;
+  items: BillItem[];
+  tax_cents: number;
+  discount_cents: number;
   created_at: Iso;
   updated_at: Iso;
 }
@@ -44,16 +56,27 @@ export interface BillMemberRow {
   member_token: string;
   paid: boolean;
   paid_at: Iso | null;
+  paid_amount_cents: number | null;
   last_viewed_at: Iso | null;
   payment_proof_url: string | null;
   claimed_at: Iso | null;
   claimed_device_hash: string | null;
+  claimed_item_ids: string[];
   created_at: Iso;
 }
 
 export type BillMemberInsert = Omit<
   BillMemberRow,
-  "id" | "paid" | "paid_at" | "last_viewed_at" | "payment_proof_url" | "claimed_at" | "claimed_device_hash" | "created_at"
+  | "id"
+  | "paid"
+  | "paid_at"
+  | "paid_amount_cents"
+  | "last_viewed_at"
+  | "payment_proof_url"
+  | "claimed_at"
+  | "claimed_device_hash"
+  | "claimed_item_ids"
+  | "created_at"
 >;
 
 export type PaymentEventType = "viewed" | "claimed" | "paid";
@@ -79,6 +102,10 @@ export interface PublicBillRpc {
   organizer_display_name: string | null;
   organizer_duitnow_id: string | null;
   created_at: Iso;
+  split_mode: SplitMode;
+  items: BillItem[];
+  tax_cents: number;
+  discount_cents: number;
 }
 
 export interface PublicBillMemberRpc {
@@ -88,6 +115,8 @@ export interface PublicBillMemberRpc {
   paid: boolean;
   paid_at: Iso | null;
   claimed: boolean;
+  claimed_item_ids: string[];
+  paid_amount_cents: number | null;
 }
 
 export interface MemberByTokenRpc {
@@ -98,6 +127,14 @@ export interface MemberByTokenRpc {
   amount_owed_cents: number;
   paid: boolean;
   paid_at: Iso | null;
+  claimed_item_ids: string[];
+  paid_amount_cents: number | null;
+}
+
+export interface ToggleItemClaimRpc {
+  member_id: string;
+  claimed: boolean;
+  amount_owed_cents: number;
 }
 
 // mark_member_paid returns a single timestamptz (the paid_at value).
