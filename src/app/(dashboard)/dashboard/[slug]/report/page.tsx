@@ -326,7 +326,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
                   </p>
                 </div>
 
-                <dl className="grid grid-cols-3 gap-3 text-right sm:w-72 sm:shrink-0">
+                <dl className="flex flex-col gap-1 text-sm sm:grid sm:grid-cols-3 sm:gap-3 sm:text-right sm:w-72 sm:shrink-0">
                   <ColumnFigure label="Fair share">
                     <AmountDisplay cents={fairShare} size="sm" muted={!m.paid} />
                   </ColumnFigure>
@@ -439,9 +439,14 @@ function ColumnFigure({
   label: string;
   children: React.ReactNode;
 }) {
+  // Mobile (<sm): horizontal label : value row so the 3 figures stack
+  // vertically inside the parent dl — readable at 375px instead of
+  // squeezing label + amount into a ~95px column.
+  // Tablet+ (sm:): original stacked label-above-value, right-aligned, so
+  // the dl can sit beside the member's name block as a compact 3-col.
   return (
-    <div className="flex flex-col items-end">
-      <dt className="text-[9px] uppercase tracking-widest text-foreground-faint">
+    <div className="flex items-baseline justify-between gap-3 sm:flex-col sm:items-end sm:justify-start sm:gap-0">
+      <dt className="text-[10px] uppercase tracking-widest text-foreground-soft sm:text-[9px] sm:text-foreground-faint">
         {label}
       </dt>
       <dd className="font-mono tabular">{children}</dd>
