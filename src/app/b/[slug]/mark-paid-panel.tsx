@@ -2,9 +2,10 @@
 
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Check, Loader2, Trash2, Upload } from "lucide-react";
+import { Check, Loader2, Trash2, Upload, X } from "lucide-react";
 
-import { Button } from "@/components/button";
+import { AmountDisplay } from "@/components/amount-display";
+import { Button, buttonClassName } from "@/components/button";
 import { InkStamp } from "@/components/ink-stamp";
 import { cn } from "@/lib/cn";
 import { markPaid, type MarkPaidState } from "@/actions/members";
@@ -46,12 +47,28 @@ export function MarkPaidPanel({
   initialPaidAt,
   organizerName,
   canPay = true,
+  amountOwedCents = 0,
 }: MarkPaidPanelProps) {
   const [state, formAction, pending] = useActionState(markPaid, INITIAL_PAID);
   const reduced = useReducedMotion();
 
   const paid = initiallyPaid || state.ok === true;
   const paidAt = state.paidAt ?? initialPaidAt;
+
+  // Confirmation dialog state — guards the irreversible "marked paid" RPC
+  // call against fat-finger taps. Opens on "I've paid" click; only the
+  // Confirm button inside actually submits the form. Derived `dialogOpen`
+  // auto-closes while the action is in flight so the user sees the form's
+  // "Confirming..." button state and isn't stuck behind a modal.
+  const confirmRef = useRef<HTMLDialogElement>(null);
+  const [confirmRequested, setConfirmRequested] = useState(false);
+  const dialogOpen = confirmRequested && !pending;
+  useEffect(() => {
+    const d = confirmRef.current;
+    if (!d) return;
+    if (dialogOpen && !d.open) d.showModal();
+    if (!dialogOpen && d.open) d.close();
+  }, [dialogOpen]);
 
   // Audit fields (recipient-side state until "I've paid" submit)
   const [method, setMethod] = useState<PaymentMethod | "">("");
@@ -176,7 +193,8 @@ export function MarkPaidPanel({
       />
 
       <Button
-        type="submit"
+        type="button"
+        onClick={() => setConfirmRequested(true)}
         disabled={pending || !canPay || isUploading}
         size="lg"
         className="w-full font-display uppercase tracking-widest"
@@ -191,9 +209,126 @@ export function MarkPaidPanel({
       <p className="text-center text-[11px] text-foreground-faint">
         {!canPay
           ? "Tap items above first to compute your share."
-          : "Tap after you transfer. Organizer gets notified instantly."}
+          : "Tap after you transfer. Tukang bayar gets notified instantly."}
       </p>
+
+      <ConfirmPaidDialog
+        ref={confirmRef}
+        amountOwedCents={amountOwedCents}
+        method={method}
+        note={note}
+        proofAttached={Boolean(proofPath)}
+        pending={pending}
+        onCancel={() => setConfirmRequested(false)}
+      />
     </form>
+  );
+}
+
+interface ConfirmPaidDialogProps {
+  ref: React.RefObject<HTMLDialogElement | null>;
+  amountOwedCents: number;
+  method: PaymentMethod | "";
+  note: string;
+  proofAttached: boolean;
+  pending: boolean;
+  onCancel: () => void;
+}
+
+function ConfirmPaidDialog({
+  ref,
+  amountOwedCents,
+  method,
+  note,
+  proofAttached,
+  pending,
+  onCancel,
+}: ConfirmPaidDialogProps) {
+  const methodLabel =
+    METHOD_OPTIONS.find((o) => o.value === method)?.label ?? "Not specified";
+
+  return (
+    <dialog
+      ref={ref}
+      onClose={onCancel}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onCancel();
+      }}
+      className="print-hide fixed inset-0 m-auto h-fit w-fit max-w-[95vw] border border-border bg-surface p-0 text-foreground backdrop:bg-foreground/60"
+      aria-labelledby="confirm-paid-title"
+    >
+      <div className="w-[28rem] max-w-full p-6">
+        <div className="flex items-start justify-between gap-3">
+          <h2
+            id="confirm-paid-title"
+            className="font-display text-2xl uppercase tracking-tight text-foreground"
+          >
+            Mark as paid?
+          </h2>
+          <button
+            type="button"
+            onClick={onCancel}
+            aria-label="Cancel"
+            className="inline-flex h-8 w-8 items-center justify-center border border-border bg-surface text-foreground hover:bg-surface-deep"
+          >
+            <X size={14} aria-hidden />
+          </button>
+        </div>
+
+        <p className="mt-2 text-sm text-foreground-soft">
+          Once marked, the tukang bayar sees this as settled. You can&apos;t
+          un-mark it yourself — they&apos;d have to delete the bill to fix
+          mistakes.
+        </p>
+
+        <dl className="mt-5 grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 text-sm">
+          <dt className="text-foreground-soft">Your share</dt>
+          <dd className="font-mono tabular text-foreground">
+            <AmountDisplay cents={amountOwedCents} size="sm" />
+          </dd>
+
+          <dt className="text-foreground-soft">Method</dt>
+          <dd className="font-mono text-foreground">{methodLabel}</dd>
+
+          {note ? (
+            <>
+              <dt className="text-foreground-soft">Note</dt>
+              <dd className="break-words font-mono text-foreground">{note}</dd>
+            </>
+          ) : null}
+
+          <dt className="text-foreground-soft">Proof</dt>
+          <dd className="font-mono text-foreground">
+            {proofAttached ? "Attached" : "None"}
+          </dd>
+        </dl>
+
+        <div className="mt-6 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={pending}
+            className={buttonClassName({
+              variant: "secondary",
+              size: "md",
+              className: "w-full",
+            })}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={pending}
+            className={buttonClassName({
+              size: "md",
+              className: "w-full font-display uppercase tracking-widest",
+            })}
+          >
+            {pending ? "Confirming..." : "Yes, I've paid"}
+          </button>
+        </div>
+      </div>
+    </dialog>
   );
 }
 
