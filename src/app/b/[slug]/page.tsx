@@ -323,12 +323,25 @@ function BankDeepLinks() {
 function BillHeader({ bill }: { bill: PublicBillRpc }) {
   return (
     <>
-      <div className="font-mono text-[10px] uppercase tracking-widest text-foreground-faint">
-        {bill.organizer_display_name
-          ? `Bill from ${bill.organizer_display_name}`
-          : "Shared bill"}
+      <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-foreground-faint">
+        {bill.organizer_avatar_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={bill.organizer_avatar_url}
+            alt=""
+            width={20}
+            height={20}
+            className="h-5 w-5 shrink-0 border border-border bg-surface object-cover"
+            referrerPolicy="no-referrer"
+          />
+        ) : null}
+        <span>
+          {bill.organizer_display_name
+            ? `Bill from ${bill.organizer_display_name}`
+            : "Shared bill"}
+        </span>
       </div>
-      <h1 className="mt-1 font-handwritten text-4xl leading-tight tracking-tight text-foreground sm:text-5xl">
+      <h1 className="mt-2 font-handwritten text-4xl leading-tight tracking-tight text-foreground sm:text-5xl">
         {bill.title}
       </h1>
       {bill.description ? (

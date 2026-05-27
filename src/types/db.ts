@@ -112,6 +112,7 @@ export interface PublicBillRpc {
   status: BillStatus;
   organizer_display_name: string | null;
   organizer_duitnow_id: string | null;
+  organizer_avatar_url: string | null;
   created_at: Iso;
   split_mode: SplitMode;
   items: BillItem[];
