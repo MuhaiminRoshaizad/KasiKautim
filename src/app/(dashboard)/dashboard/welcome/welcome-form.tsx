@@ -72,8 +72,8 @@ export function WelcomeForm({
           </span>
         ) : (
           <span className="text-[11px] text-foreground-faint">
-            Mobile, NRIC, business reg — whatever you&apos;ve registered with
-            your bank as your DuitNow proxy. Recipients tap to copy.
+            Usually your phone number — whatever you set as your DuitNow
+            proxy in your bank app. Recipients tap to copy when paying.
           </span>
         )}
       </label>

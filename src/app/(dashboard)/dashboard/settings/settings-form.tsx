@@ -99,7 +99,7 @@ export function SettingsForm({
 
       <Field
         label="DuitNow ID"
-        hint="Mobile, NRIC, passport, business reg, army/police. Whatever you registered with your bank."
+        hint="Usually your phone number — whatever you set as your DuitNow proxy in your bank app. NRIC or business reg also work."
         error={errors.duitnowId?.message}
         input={
           <input
