@@ -27,7 +27,7 @@ export function ReceiptCard({
         "shadow-[0_2px_0_rgba(0,0,0,0.04),0_12px_24px_-12px_rgba(0,0,0,0.18)]",
         // Subtle paper grain via the utility from globals.css.
         "paper-grain",
-        torn ? "torn-bottom pb-3" : "",
+        torn ? "torn-bottom pb-6" : "",
         className,
       )}
       {...rest}
