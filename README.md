@@ -26,6 +26,8 @@ KasiKautim replaces step 2–4 with **one link** dropped into the group chat. Re
 
 - **AI receipt scanner** — snap a photo of the receipt, Gemini extracts items + tax + total. Edit before saving.
 - **Equal split or by-items** — equal-split for makan, item-claim for "I only had teh tarik, not the seafood platter".
+- **Tukang bayar is also a diner** — opt-in checkbox at bill creation auto-adds the organizer as a paid member with their own claimed items, so the math accounts for "I ate too" without anyone having to chase themselves.
+- **Stacked quantity stepper** — receipts with lines like "3 Teh Tarik RM 9.00" collapse into a single "Teh Tarik ×3" row with a [−] [+] stepper so each recipient picks how many they actually ate.
 - **Claim-your-name flow** — recipients tap their name once on the bill page, get a private link bookmarked to their device. No signup.
 - **DuitNow + bank-app shortcuts** — copy DuitNow ID with one tap, or jump straight into TNG / Maybank2u via deep links.
 - **Payment audit** — when you mark paid, record the method (DuitNow, cash, TNG, etc.) + an optional note + a screenshot. EXIF stripped server-side before storage.
@@ -48,7 +50,7 @@ KasiKautim replaces step 2–4 with **one link** dropped into the group chat. Re
 | Forms | react-hook-form + zod |
 | Hosting | Vercel |
 
-Tests: vitest, 40/40 green. Money math, slug retry, members parser, item-split math.
+Tests: vitest, 58/58 green. Money math, slug retry, members parser, item-split math, scanner quantity expansion, item-group display collapse.
 
 ## Try it
 
@@ -135,9 +137,9 @@ Scoped out of this submission, documented so judges and future readers know they
 ### Items + claiming
 
 - **Item edits after bill creation** — items + tax + discount are locked at creation. Workaround: delete + recreate the bill.
-- **Per-person quantity for a single item** — `claim_item` is binary (you tapped this line or you didn't). If a receipt has one line "3 NASI LEMAK RM 25.50" and Ali ordered 2 + Faiz ordered 1, both tapping the chip splits it 50/50 (RM 12.75 each) rather than 2:1. Workaround: manually split that one line into two items in the editor before creating the bill — "Nasi Lemak (Ali x2) RM 17.00" + "Nasi Lemak (Faiz x1) RM 8.50".
-- **Repeated identical items** — when a receipt lists the same item 10 times as 10 separate lines (rare, usually multi-pax orders), the picker shows 10 identical chips. Each claimer taps their own. Math is correct; UX is visually noisy. Can be cleaned up by manually consolidating lines in the editor.
-- **No item-level partial claim** — if you ordered half of someone's appetizer, neither of you can express that today. Workaround: pretend it's a whole one and tap once between you two.
+- **Per-person quantity for a single LINE** — when a receipt prints "3 NASI LEMAK RM 25.50" as one consolidated line (no individual unit prices), the scanner can't expand it because dividing RM 25.50 by 3 introduces rounding ambiguity that real receipts settle visually. Workaround: manually split that line in the editor pre-create. Stacked lines that ARE separable (e.g. quantity-prefixed lines that divide evenly) get auto-expanded into per-unit items and then rendered as a single stepper row in the picker.
+- **Single-unit sharing between stepper claimers** — the stepper's "how many did you eat?" model is per-unit and assigns whole units. If two people genuinely share one chip via the stepper, that case falls through to the existing chip co-tap pattern instead — manually split the line into halves pre-create for cleaner UX.
+- **No item-level partial claim** — if you ordered half of someone's appetizer (not via the quantity expansion path), neither of you can express that today. Workaround: pretend it's a whole one and tap once between you two.
 
 ### Payment + reconciliation
 
@@ -155,7 +157,7 @@ Scoped out of this submission, documented so judges and future readers know they
 ### Storage + retention
 
 - **Proof storage cleanup** — deleting a bill cascades through `bill_members` + `payment_events` via FK ON DELETE CASCADE, but the proof images in Storage are not auto-cleaned (would need a cron job we haven't built). Orphans accumulate.
-- **HEIC EXIF strip** — runtime depends on libheif being bundled in the Vercel function. If it isn't (Vercel's Node 24 default), the EXIF strip soft-fails to a raw byte copy. Privacy degraded gracefully but not eliminated for HEIC uploads.
+- **HEIC EXIF strip** — runtime depends on libheif being bundled in the Vercel function. If it isn't (Vercel's Node 24 default), the upload action hard-rejects with "Couldn't process that image. Try saving it as JPG or PNG and upload again." rather than silently storing the original bytes (which would leak GPS/device EXIF on iPhone screenshots). The trade-off is a UX friction on HEIC, not a privacy regression.
 - **Storage signed URL TTL** — 24 hours on the report page proof thumbnails. Re-print after that → broken images until you reload the page (which mints fresh URLs).
 - **No bill archive / soft delete** — bill delete is destructive. A "settled bills" archive folder isn't built; once paid + acknowledged, organizers either keep them visible or delete them.
 
