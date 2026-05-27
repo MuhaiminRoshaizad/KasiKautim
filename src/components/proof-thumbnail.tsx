@@ -39,19 +39,7 @@ export function ProofThumbnail({
   }, [open]);
 
   if (!signedUrl) {
-    return (
-      <span
-        className={cn(
-          "inline-block border border-dashed border-border bg-surface/60 text-[10px] text-foreground-faint",
-          size === "sm" ? "h-8 w-8" : "h-14 w-14",
-          "flex items-center justify-center",
-          className,
-        )}
-        aria-label="No proof uploaded"
-      >
-        —
-      </span>
-    );
+    return null;
   }
 
   return (
@@ -82,7 +70,7 @@ export function ProofThumbnail({
           // Click backdrop closes the dialog.
           if (e.target === e.currentTarget) setOpen(false);
         }}
-        className="print-hide max-h-[90vh] max-w-[95vw] border border-border bg-surface p-0 text-foreground backdrop:bg-foreground/60"
+        className="print-hide fixed inset-0 m-auto h-fit w-fit max-h-[90vh] max-w-[95vw] border border-border bg-surface p-0 text-foreground backdrop:bg-foreground/60"
       >
         <div className="relative">
           <button

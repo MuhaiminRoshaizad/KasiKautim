@@ -344,12 +344,14 @@ export default async function ReportPage({ params }: ReportPageProps) {
                   </ColumnFigure>
                 </dl>
 
-                <div className="shrink-0">
-                  <ProofThumbnail
-                    signedUrl={signedUrl}
-                    alt={`${m.name}'s payment proof`}
-                  />
-                </div>
+                {signedUrl ? (
+                  <div className="shrink-0">
+                    <ProofThumbnail
+                      signedUrl={signedUrl}
+                      alt={`${m.name}'s payment proof`}
+                    />
+                  </div>
+                ) : null}
               </li>
             );
           })}
