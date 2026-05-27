@@ -35,12 +35,12 @@ export default function HomePage() {
             chasing.
           </h1>
           <p className="mt-6 max-w-md text-base leading-relaxed text-foreground-soft sm:text-lg">
-            Create a bill, share one link in the group chat, and watch it settle
-            on its own. Members tap their name, pay, done. You see who&apos;s in
-            and who&apos;s ghosting — in real time.
+            Create a bill. Share one link in the group chat. Members tap
+            their name, pay, mark settled. You see who&apos;s paid and
+            who&apos;s still ghosting.
           </p>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-8">
             <Link
               href="/login"
               className={buttonClassName({
@@ -51,41 +51,16 @@ export default function HomePage() {
               Create a bill
               <ArrowRight size={18} aria-hidden />
             </Link>
-            <Link
-              href="#how"
-              className={buttonClassName({ variant: "ghost", size: "lg" })}
-            >
-              See how it works
-            </Link>
           </div>
 
           <p className="mt-4 text-xs text-foreground-faint">
-            Free during the bounty. No app install needed.
+            Sign in with Google. No app install. Link works in WhatsApp.
           </p>
         </div>
 
         <div className="flex-1">
           <SampleReceipt />
         </div>
-      </section>
-
-      <section id="how" className="mt-24 grid gap-6 sm:grid-cols-3 sm:gap-4">
-        {STEPS.map((step, i) => (
-          <article
-            key={step.title}
-            className="border border-border bg-surface p-5"
-          >
-            <div className="font-mono tabular text-xs uppercase tracking-widest text-foreground-faint">
-              Step {String(i + 1).padStart(2, "0")}
-            </div>
-            <h3 className="mt-3 font-display text-2xl uppercase tracking-tight text-foreground">
-              {step.title}
-            </h3>
-            <p className="mt-2 text-sm leading-relaxed text-foreground-soft">
-              {step.body}
-            </p>
-          </article>
-        ))}
       </section>
 
       <footer className="mt-auto pt-16 text-xs text-foreground-faint">
@@ -109,21 +84,6 @@ export default function HomePage() {
     </main>
   );
 }
-
-const STEPS = [
-  {
-    title: "Create the bill",
-    body: "Name it, set the total, list the squad. We split equally and mint a single shareable link.",
-  },
-  {
-    title: "Drop the link",
-    body: "Paste once into the group chat. Members tap their name on the receipt — no signup, no app.",
-  },
-  {
-    title: "Watch it settle",
-    body: "See paid / unpaid / viewed-but-ghosting in real time. Last payment triggers a satisfying stamp.",
-  },
-];
 
 function SampleReceipt() {
   const total = 12_000;
