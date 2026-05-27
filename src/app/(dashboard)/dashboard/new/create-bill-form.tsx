@@ -1,28 +1,60 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft } from "lucide-react";
+import { customAlphabet } from "nanoid";
+import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 
+import { AmountDisplay } from "@/components/amount-display";
 import { Button, buttonClassName } from "@/components/button";
 import { ReceiptCard, ReceiptDivider } from "@/components/receipt-card";
 import { cn } from "@/lib/cn";
+import { fromCents, toCents } from "@/lib/money";
 import { createBill, type CreateBillState } from "@/actions/bills";
 import {
   CreateBillFormSchema,
   type CreateBillForm,
 } from "@/types/schemas";
 
-import { ReceiptScanner } from "./receipt-scanner";
+import { ReceiptScanner, type ScannerApplyPayload } from "./receipt-scanner";
 
 const FIELD_INPUT =
   "h-12 w-full border border-border bg-surface px-3 font-sans text-base text-foreground placeholder:text-foreground-faint focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 focus:ring-offset-background";
 
+const PRICE_PATTERN = /^\d*(\.\d{0,2})?$/;
+
+const newItemId = customAlphabet(
+  "0123456789abcdefghijklmnopqrstuvwxyz",
+  10,
+);
+
+interface EditableItem {
+  id: string;
+  name: string;
+  price: string;
+}
+
+type SplitMode = "equal" | "item";
+
+const parsePriceToCents = (raw: string): number => {
+  if (!raw || raw.trim() === "") return 0;
+  try {
+    return toCents(raw);
+  } catch {
+    return 0;
+  }
+};
+
 export function CreateBillFormIsland() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const [splitMode, setSplitMode] = useState<SplitMode>("equal");
+  const [items, setItems] = useState<EditableItem[]>([]);
+  const [taxString, setTaxString] = useState("0");
+  const [discountString, setDiscountString] = useState("0");
 
   const {
     register,
@@ -45,23 +77,60 @@ export function CreateBillFormIsland() {
     },
   });
 
+  // Computed sums for the item-mode breakdown card.
+  const itemsSumCents = useMemo(
+    () => items.reduce((acc, it) => acc + parsePriceToCents(it.price), 0),
+    [items],
+  );
+  const taxCents = parsePriceToCents(taxString);
+  const discountCents = parsePriceToCents(discountString);
+  const computedTotalCents = Math.max(0, itemsSumCents + taxCents - discountCents);
+
+  const handleScanApplied = (payload: ScannerApplyPayload) => {
+    if (payload.title) setValue("title", payload.title, { shouldValidate: true });
+
+    if (splitMode === "equal") {
+      // Equal mode: only the total moves into the form. Items live in scanner.
+      if (payload.total) setValue("total", payload.total, { shouldValidate: true });
+    } else {
+      // Item mode: pull items + tax + discount into the form-managed state.
+      setItems(
+        payload.items.map((it) => ({
+          id: it.id,
+          name: it.name,
+          price: fromCents(it.price_cents).toFixed(2),
+        })),
+      );
+      setTaxString(fromCents(payload.taxCents).toFixed(2));
+      setDiscountString(fromCents(payload.discountCents).toFixed(2));
+    }
+  };
+
   const onSubmit = handleSubmit((data) => {
     setServerError(null);
+
+    const itemsForServer = items
+      .map((it) => ({
+        id: it.id,
+        name: it.name.trim(),
+        price_cents: parsePriceToCents(it.price),
+      }))
+      .filter((it) => it.name.length > 0 && it.price_cents > 0);
+
     const fd = new FormData();
     fd.append("title", data.title);
     fd.append("description", data.description ?? "");
     fd.append("total", data.total ?? "");
     fd.append("dueDate", data.dueDate ?? "");
     fd.append("membersInput", data.membersInput);
-    fd.append("splitMode", data.splitMode ?? "equal");
-    fd.append("items", JSON.stringify(data.items ?? []));
-    fd.append("taxCents", String(data.taxCents ?? 0));
-    fd.append("discountCents", String(data.discountCents ?? 0));
+    fd.append("splitMode", splitMode);
+    fd.append("items", JSON.stringify(splitMode === "item" ? itemsForServer : []));
+    fd.append("taxCents", String(splitMode === "item" ? taxCents : 0));
+    fd.append("discountCents", String(splitMode === "item" ? discountCents : 0));
 
     startTransition(async () => {
       const initial: CreateBillState = { ok: null, message: "" };
       const result = await createBill(initial, fd);
-      // On success the action redirects and this code is unreachable.
       if (result?.ok === false) {
         setServerError(result.message);
         if (result.fieldErrors) {
@@ -102,16 +171,13 @@ export function CreateBillFormIsland() {
 
       <ReceiptDivider />
 
-      <ReceiptScanner
-        onScanned={({ title, total }) => {
-          if (title) setValue("title", title, { shouldValidate: true });
-          if (total) setValue("total", total, { shouldValidate: true });
-        }}
-      />
+      <ReceiptScanner onScanned={handleScanApplied} />
 
       <ReceiptDivider label="or fill in" />
 
       <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
+        <ModeToggle value={splitMode} onChange={setSplitMode} disabled={pending} />
+
         <Field
           label="Title"
           error={errors.title?.message}
@@ -144,52 +210,91 @@ export function CreateBillFormIsland() {
           }
         />
 
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <Field
-            label="Total (RM)"
-            error={errors.total?.message}
-            input={
-              <div className="relative">
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-sm text-foreground-faint">
-                  RM
-                </span>
+        {splitMode === "equal" ? (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <Field
+              label="Total (RM)"
+              error={errors.total?.message}
+              input={
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-sm text-foreground-faint">
+                    RM
+                  </span>
+                  <input
+                    {...register("total")}
+                    type="text"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    placeholder="120.00"
+                    className={cn(FIELD_INPUT, "pl-12 font-mono tabular")}
+                    disabled={pending}
+                  />
+                </div>
+              }
+            />
+            <Field
+              label="Due date"
+              hint="Optional."
+              error={errors.dueDate?.message}
+              input={
                 <input
-                  {...register("total")}
-                  type="text"
-                  inputMode="decimal"
-                  autoComplete="off"
-                  placeholder="120.00"
-                  className={cn(FIELD_INPUT, "pl-12 font-mono tabular")}
+                  {...register("dueDate")}
+                  type="date"
+                  className={FIELD_INPUT}
                   disabled={pending}
                 />
-              </div>
-            }
-          />
-
-          <Field
-            label="Due date"
-            hint="Optional."
-            error={errors.dueDate?.message}
-            input={
-              <input
-                {...register("dueDate")}
-                type="date"
-                className={FIELD_INPUT}
-                disabled={pending}
-              />
-            }
-          />
-        </div>
+              }
+            />
+          </div>
+        ) : (
+          <>
+            <ItemModeFields
+              items={items}
+              setItems={setItems}
+              taxString={taxString}
+              setTaxString={setTaxString}
+              discountString={discountString}
+              setDiscountString={setDiscountString}
+              itemsSumCents={itemsSumCents}
+              taxCents={taxCents}
+              discountCents={discountCents}
+              computedTotalCents={computedTotalCents}
+              disabled={pending}
+              error={errors.items?.message}
+            />
+            <Field
+              label="Due date"
+              hint="Optional."
+              error={errors.dueDate?.message}
+              input={
+                <input
+                  {...register("dueDate")}
+                  type="date"
+                  className={FIELD_INPUT}
+                  disabled={pending}
+                />
+              }
+            />
+          </>
+        )}
 
         <Field
           label="Add the squad"
-          hint='Comma- or newline-separated. Add a number to override: "Aisha 25, Faiz 30, Wani".'
+          hint={
+            splitMode === "item"
+              ? "Names only — each person picks their items on the share link."
+              : 'Comma- or newline-separated. Add a number to override: "Aisha 25, Faiz 30, Wani".'
+          }
           error={errors.membersInput?.message}
           input={
             <textarea
               {...register("membersInput")}
               rows={4}
-              placeholder={"Aisha\nFaiz\nWani 30\nHafiz"}
+              placeholder={
+                splitMode === "item"
+                  ? "Aisha\nFaiz\nWani\nHafiz"
+                  : "Aisha\nFaiz\nWani 30\nHafiz"
+              }
               className={cn(FIELD_INPUT, "h-auto py-3 font-mono text-sm")}
               disabled={pending}
             />
@@ -228,6 +333,268 @@ export function CreateBillFormIsland() {
   );
 }
 
+// ---------- Mode toggle ----------
+
+function ModeToggle({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: SplitMode;
+  onChange: (v: SplitMode) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div>
+      <div className="text-xs font-medium uppercase tracking-widest text-foreground-soft">
+        Split mode
+      </div>
+      <div
+        role="radiogroup"
+        aria-label="Split mode"
+        className="mt-2 grid grid-cols-2 gap-0 border border-border bg-surface p-1"
+      >
+        {(["equal", "item"] as const).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            role="radio"
+            aria-checked={value === mode}
+            disabled={disabled}
+            onClick={() => onChange(mode)}
+            className={cn(
+              "px-3 py-2 text-sm font-medium uppercase tracking-widest transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+              value === mode
+                ? "bg-foreground text-paper"
+                : "text-foreground-soft hover:bg-surface-deep",
+              disabled ? "cursor-not-allowed opacity-60" : "",
+            )}
+          >
+            {mode === "equal" ? "Equal split" : "By items"}
+          </button>
+        ))}
+      </div>
+      <p className="mt-2 text-[11px] text-foreground-faint">
+        {value === "equal"
+          ? "Bill is split evenly across members (or by your custom amounts)."
+          : "List each item; recipients pick what they ordered on the share link."}
+      </p>
+    </div>
+  );
+}
+
+// ---------- Item-mode fields ----------
+
+function ItemModeFields({
+  items,
+  setItems,
+  taxString,
+  setTaxString,
+  discountString,
+  setDiscountString,
+  itemsSumCents,
+  taxCents,
+  discountCents,
+  computedTotalCents,
+  disabled,
+  error,
+}: {
+  items: EditableItem[];
+  setItems: React.Dispatch<React.SetStateAction<EditableItem[]>>;
+  taxString: string;
+  setTaxString: (s: string) => void;
+  discountString: string;
+  setDiscountString: (s: string) => void;
+  itemsSumCents: number;
+  taxCents: number;
+  discountCents: number;
+  computedTotalCents: number;
+  disabled?: boolean;
+  error?: string;
+}) {
+  const updateItem = (id: string, patch: Partial<EditableItem>) => {
+    setItems((curr) =>
+      curr.map((it) => {
+        if (it.id !== id) return it;
+        if (patch.price !== undefined && !PRICE_PATTERN.test(patch.price)) return it;
+        return { ...it, ...patch };
+      }),
+    );
+  };
+
+  const removeItem = (id: string) =>
+    setItems((curr) => curr.filter((it) => it.id !== id));
+
+  const addItem = () =>
+    setItems((curr) => [
+      ...curr,
+      { id: newItemId(), name: "", price: "" },
+    ]);
+
+  const handlePriceInput = (
+    raw: string,
+    setter: (s: string) => void,
+  ) => {
+    if (PRICE_PATTERN.test(raw)) setter(raw);
+  };
+
+  return (
+    <div className="space-y-3 border border-border bg-surface/60 p-4">
+      <div className="flex items-baseline justify-between">
+        <span className="text-xs font-medium uppercase tracking-widest text-foreground-soft">
+          Items ({items.length})
+        </span>
+        <span className="text-[11px] text-foreground-faint">
+          Each one is claimable by recipients
+        </span>
+      </div>
+
+      {items.length === 0 ? (
+        <p className="text-sm text-foreground-soft">
+          Scan a receipt above, or add items below.
+        </p>
+      ) : (
+        <ul className="space-y-1.5">
+          {items.map((it) => (
+            <li key={it.id} className="flex items-center gap-2 font-mono text-xs">
+              <input
+                type="text"
+                value={it.name}
+                onChange={(e) => updateItem(it.id, { name: e.target.value })}
+                placeholder="Item name"
+                maxLength={80}
+                disabled={disabled}
+                className="min-w-0 flex-1 border border-transparent bg-surface px-2 py-1.5 text-foreground placeholder:text-foreground-faint hover:border-border focus:border-foreground focus:outline-none"
+                aria-label="Item name"
+              />
+              <span className="text-foreground-faint">RM</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={it.price}
+                onChange={(e) => updateItem(it.id, { price: e.target.value })}
+                placeholder="0.00"
+                disabled={disabled}
+                className="w-20 border border-transparent bg-surface px-2 py-1.5 text-right tabular text-foreground placeholder:text-foreground-faint hover:border-border focus:border-foreground focus:outline-none"
+                aria-label={`Price of ${it.name || "item"}`}
+              />
+              <button
+                type="button"
+                onClick={() => removeItem(it.id)}
+                disabled={disabled}
+                aria-label={`Remove ${it.name || "item"}`}
+                className="inline-flex h-7 w-7 items-center justify-center text-foreground-faint hover:text-stamp"
+              >
+                <Trash2 size={12} aria-hidden />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <button
+        type="button"
+        onClick={addItem}
+        disabled={disabled}
+        className="inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-widest text-foreground-soft hover:text-foreground"
+      >
+        <Plus size={12} aria-hidden />
+        Add item
+      </button>
+
+      <ReceiptDivider />
+
+      <div className="grid grid-cols-2 gap-3">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[11px] font-medium uppercase tracking-widest text-foreground-soft">
+            Tax / service (RM)
+          </span>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={taxString}
+            onChange={(e) => handlePriceInput(e.target.value, setTaxString)}
+            disabled={disabled}
+            placeholder="0.00"
+            className={cn(FIELD_INPUT, "font-mono tabular text-right")}
+          />
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[11px] font-medium uppercase tracking-widest text-foreground-soft">
+            Discount (RM)
+          </span>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={discountString}
+            onChange={(e) => handlePriceInput(e.target.value, setDiscountString)}
+            disabled={disabled}
+            placeholder="0.00"
+            className={cn(FIELD_INPUT, "font-mono tabular text-right")}
+          />
+        </label>
+      </div>
+
+      <dl className="space-y-1 border-t border-border pt-3 font-mono text-xs">
+        <SummaryRow label="Items sum">
+          <AmountDisplay cents={itemsSumCents} size="sm" muted />
+        </SummaryRow>
+        {taxCents > 0 ? (
+          <SummaryRow label="+ Tax / service">
+            <AmountDisplay cents={taxCents} size="sm" muted />
+          </SummaryRow>
+        ) : null}
+        {discountCents > 0 ? (
+          <SummaryRow label="− Discount">
+            <span className="text-ringgit">
+              − <AmountDisplay cents={discountCents} size="sm" muted />
+            </span>
+          </SummaryRow>
+        ) : null}
+        <SummaryRow label="Bill total" emphasize>
+          <AmountDisplay cents={computedTotalCents} size="md" />
+        </SummaryRow>
+      </dl>
+
+      {error ? (
+        <p role="alert" className="text-xs text-stamp">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function SummaryRow({
+  label,
+  emphasize,
+  children,
+}: {
+  label: string;
+  emphasize?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-baseline justify-between gap-3",
+        emphasize && "border-t border-border pt-1.5 text-foreground",
+      )}
+    >
+      <dt
+        className={cn(
+          "text-foreground-soft",
+          emphasize && "text-xs font-medium uppercase tracking-widest text-foreground",
+        )}
+      >
+        {label}
+      </dt>
+      <dd className="tabular">{children}</dd>
+    </div>
+  );
+}
+
 function Field({
   label,
   hint,
@@ -246,7 +613,7 @@ function Field({
           {label}
         </span>
         {hint ? (
-          <span className="text-[11px] text-foreground-faint">{hint}</span>
+          <span className="text-right text-[11px] text-foreground-faint">{hint}</span>
         ) : null}
       </span>
       {input}
