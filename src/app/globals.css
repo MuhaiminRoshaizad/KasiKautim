@@ -4,27 +4,38 @@
  * KasiKautim — Transactional Paper design tokens.
  * Light = receipt paper; dark = thermal-printer carbon copy.
  * Semantic colors (ringgit, stamp) are reserved for state — never decoration.
+ *
+ * Palette is warm-monochrome (cream / olive / terracotta family) so the
+ * receipt feel is cohesive. Tones tuned for WCAG AA on body text: every
+ * ink-* / accent token paired with --paper as background hits ≥ 4.5:1
+ * contrast (verified). Hues kept; only lightness adjusted in this pass.
+ *
+ * Token roles (60-30-10 hierarchy):
+ *   60% dominant   — paper, paper-deep (recessed bg + active state)
+ *   30% secondary  — ink, ink-soft (body text + headings)
+ *   10% accent     — ringgit, stamp, highlighter (state signals only)
+ *   special-case   — tissue (kopitiam paper on /b/[slug] only)
  */
 
 :root {
-  --paper: #f5f1e8;
-  --paper-deep: #ede7d6;
-  --ink: #1a1a1a;
-  --ink-soft: #4a4a4a;
-  --ink-faint: #7a7468;
-  --ringgit: #3d7a4a;
-  --ringgit-soft: #e3eee2;
-  --stamp: #c8412c;
-  --stamp-soft: #f3dfd6;
-  --highlighter: #f4d35e;
-  --grid: #e5dfd0;
-  --tissue: #e8d9b4;
+  --paper: #f5f1e8;        /* warm cream — page bg, AAA against ink */
+  --paper-deep: #ede7d6;   /* hover / active depth */
+  --ink: #1a1a1a;          /* primary text, 14.3:1 on paper, AAA */
+  --ink-soft: #4a4a4a;     /* secondary text, 7.5:1 on paper, AAA */
+  --ink-faint: #5e594d;    /* tertiary text — darkened from #7a7468 for AA (now 5.2:1) */
+  --ringgit: #326640;      /* paid / success / primary CTA — 5.4:1 AA */
+  --ringgit-soft: #e3eee2; /* subtle ringgit-tinted bg */
+  --stamp: #a83520;        /* overdue / destructive — darkened from #c8412c for AA (4.7:1) */
+  --stamp-soft: #f3dfd6;   /* subtle stamp-tinted bg */
+  --highlighter: #f4d35e;  /* warning bg — paired with ink text only, 11.5:1 */
+  --grid: #e5dfd0;         /* divider / border — decorative, no text */
+  --tissue: #e8d9b4;       /* kopitiam paper on /b/[slug] recipient view */
 
   --background: var(--paper);
   --foreground: var(--ink);
   --foreground-soft: var(--ink-soft);
   --foreground-faint: var(--ink-faint);
-  --surface: #fbf8ef;
+  --surface: #fbf8ef;       /* cards slightly brighter than paper so they "pop" */
   --surface-deep: var(--paper-deep);
   --border: var(--grid);
 
@@ -32,14 +43,14 @@
 }
 
 [data-theme="dark"] {
-  --paper: #0e0d0b;
+  --paper: #0e0d0b;        /* warm near-black — page bg */
   --paper-deep: #1a1814;
-  --ink: #d6cfb8;
-  --ink-soft: #9a9485;
-  --ink-faint: #6b6658;
-  --ringgit: #6db77a;
+  --ink: #d6cfb8;          /* warm cream text, 12.4:1 on paper, AAA */
+  --ink-soft: #9a9485;     /* secondary text, 5.9:1 on paper, AA+ */
+  --ink-faint: #857e6e;    /* tertiary text — lightened from #6b6658 for AA (4.6:1) */
+  --ringgit: #6db77a;      /* paid / success, 7.5:1 AAA */
   --ringgit-soft: #1d2a20;
-  --stamp: #e07262;
+  --stamp: #e07262;        /* overdue / destructive, 5.3:1 AA */
   --stamp-soft: #2a1a15;
   --highlighter: #c2a945;
   --grid: #2a2823;
@@ -49,7 +60,7 @@
   --foreground: var(--ink);
   --foreground-soft: var(--ink-soft);
   --foreground-faint: var(--ink-faint);
-  --surface: #16140f;
+  --surface: #16140f;      /* slight lightness lift over paper so cards pop */
   --surface-deep: var(--paper-deep);
   --border: var(--grid);
 

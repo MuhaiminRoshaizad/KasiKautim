@@ -94,9 +94,9 @@ const COLORS = {
   paperDeep: "#ede7d6",
   ink: "#1a1a1a",
   inkSoft: "#4a4a4a",
-  inkFaint: "#7a7468",
-  ringgit: "#3d7a4a",
-  stamp: "#c8412c",
+  inkFaint: "#5e594d",
+  ringgit: "#326640",
+  stamp: "#a83520",
   grid: "#e5dfd0",
 } as const;
 

@@ -63,7 +63,7 @@ export function FullyCollectedCelebration({
         spread: 70,
         startVelocity: 55,
         origin: { x: 0, y: 1 },
-        colors: ["#3d7a4a", "#c8412c", "#f4d35e", "#1a1a1a"],
+        colors: ["#326640", "#a83520", "#f4d35e", "#1a1a1a"],
         disableForReducedMotion: true,
       });
       confetti({
@@ -72,7 +72,7 @@ export function FullyCollectedCelebration({
         spread: 70,
         startVelocity: 55,
         origin: { x: 1, y: 1 },
-        colors: ["#3d7a4a", "#c8412c", "#f4d35e", "#1a1a1a"],
+        colors: ["#326640", "#a83520", "#f4d35e", "#1a1a1a"],
         disableForReducedMotion: true,
       });
       rafId = window.requestAnimationFrame(tick);
