@@ -29,3 +29,18 @@ export function privateShareMessage(args: {
   const dueLine = dueDate ? `\nDue ${dueDate}.` : "";
   return `Hi ${name}! Your share for *${title}* — ${amount}.${dueLine}\nTap to settle 🙏\n${link}`;
 }
+
+/**
+ * Item-mode bills: the recipient's share is computed from what they tap,
+ * so we don't have a fixed amount to put in the message.
+ */
+export function privateItemModeShareMessage(args: {
+  name: string;
+  title: string;
+  link: string;
+  dueDate?: string | null;
+}): string {
+  const { name, title, link, dueDate } = args;
+  const dueLine = dueDate ? `\nDue ${dueDate}.` : "";
+  return `Hi ${name}! Tap the items you ordered for *${title}* — we'll compute your share automatically.${dueLine}\n${link}`;
+}
