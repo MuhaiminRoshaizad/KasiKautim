@@ -3,7 +3,9 @@
 > "Jom split" = "let's split" in Manglish.
 > A web app for splitting bills the way Malaysians actually do it — share a link in the group chat, watch it settle.
 
-**Bounty submission:** [KrackedDevs Fintech Bounty — Split Bill & Payment Tracker Web App](https://krackeddevs.com)
+**Built for:** [KrackedDevs](https://krackeddevs.com/) — a Malaysian platform that hosts paid coding "bounties" where anyone can submit a project answering a posted brief. Multiple builders ship their take on the same bounty; the brief owner picks the winners.
+
+**This bounty:** [Split Bill & Payment Tracker Web App](https://krackeddevs.com/code/bounty/split-bill-payment-tracker-web-app)
 **Live URL:** https://jom-split-two.vercel.app
 **Repo:** https://github.com/MuhaiminRoshaizad/JomSplit
 
