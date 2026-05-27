@@ -116,6 +116,7 @@ Light mode is receipt paper. Dark mode is thermal-printer carbon copy.
 - **24h signed Storage URLs** for proofs on the report page.
 - **30-min throttle on `viewed` events** (migration 0006) — prevents activity-timeline spam.
 - **Server Components by default**. `'use client'` only where required (realtime subscriptions, form interactions, framer-motion).
+- **DuitNow ID is loose-validated by design.** [PayNet's Pay-by-Proxy spec](https://docs.developer.paynet.my/docs/duitnow-transfer/integration/pay-by-proxy) supports five proxy types (mobile / NRIC / passport / army-police / business reg) but doesn't publish strict format regexes — banks validate at transfer-time. We accept any alphanumeric string 5-50 chars and expose it via tap-to-copy on `/b/[slug]`. Recipients paste into their banking app where the real validation happens.
 
 ## Known limitations (documented honestly)
 

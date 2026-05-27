@@ -99,7 +99,7 @@ export function SettingsForm({
 
       <Field
         label="DuitNow ID"
-        hint="Phone, NRIC, or DuitNow Business ID. Optional — when set, recipients see a copy panel."
+        hint="Mobile, NRIC, passport, business reg, army/police. Whatever you registered with your bank."
         error={errors.duitnowId?.message}
         input={
           <input
