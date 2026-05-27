@@ -102,7 +102,7 @@ function SampleReceipt() {
   const total = 12_000;
   const collected = 8_000;
   return (
-    <ReceiptCard className="mx-auto max-w-sm p-6 sm:p-8">
+    <ReceiptCard className="mx-auto max-w-sm p-6 sm:p-8 lg:ml-auto lg:mr-0">
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="font-mono text-[10px] uppercase tracking-widest text-foreground-faint">

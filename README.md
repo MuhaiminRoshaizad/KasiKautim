@@ -6,8 +6,8 @@
 **Built for:** [KrackedDevs](https://krackeddevs.com/) — a Malaysian platform that hosts paid coding "bounties" where anyone can submit a project answering a posted brief. Multiple builders ship their take on the same bounty; the brief owner picks the winners.
 
 **This bounty:** [Split Bill & Payment Tracker Web App](https://krackeddevs.com/code/bounty/split-bill-payment-tracker-web-app)
-**Live URL:** https://kasi-kautim.vercel.app
-**Repo:** https://github.com/MuhaiminRoshaizad/KasiKautim
+**Live URL:** https://jom-split-two.vercel.app *(URL still uses the project's original "JomSplit" name — Vercel URLs are sticky; the brand wordmark is now "KasiKautim" everywhere in the app)*
+**Repo:** https://github.com/MuhaiminRoshaizad/KasiKautim *(rename pending — old name was JomSplit)*
 
 ---
 
@@ -52,7 +52,7 @@ Tests: vitest, 40/40 green. Money math, slug retry, members parser, item-split m
 
 ## Try it
 
-1. Open https://kasi-kautim.vercel.app on your phone.
+1. Open https://jom-split-two.vercel.app on your phone.
 2. Tap "Continue with Google" and pick the Google account you want to use.
 3. Tap "Create a bill", scan or type in the items, add the squad.
 4. Hit "Send to group chat" — copy the link.
