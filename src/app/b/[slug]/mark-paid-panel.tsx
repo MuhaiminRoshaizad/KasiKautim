@@ -31,10 +31,10 @@ const INITIAL_UPLOAD: UploadProofState = { ok: null, message: "" };
 
 const METHOD_OPTIONS: { value: PaymentMethod | ""; label: string }[] = [
   { value: "", label: "Pick one (optional)" },
-  { value: "duitnow", label: "DuitNow" },
-  { value: "tng", label: "Touch 'n Go eWallet" },
-  { value: "maybank2u", label: "Maybank2u" },
   { value: "cash", label: "Cash" },
+  { value: "online_transfer", label: "Online transfer (bank app)" },
+  { value: "duitnow_qr", label: "DuitNow QR" },
+  { value: "ewallet", label: "E-wallet (TNG / GrabPay / Boost)" },
   { value: "other", label: "Other" },
 ];
 

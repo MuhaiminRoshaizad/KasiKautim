@@ -128,9 +128,9 @@ export type ParsedMember = z.infer<typeof ParsedMemberSchema>;
  */
 export const PaymentMethodSchema = z.enum([
   "cash",
-  "duitnow",
-  "tng",
-  "maybank2u",
+  "online_transfer",
+  "duitnow_qr",
+  "ewallet",
   "other",
 ]);
 export type PaymentMethod = z.infer<typeof PaymentMethodSchema>;

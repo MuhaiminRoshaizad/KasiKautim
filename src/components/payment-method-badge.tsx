@@ -1,4 +1,4 @@
-import { Banknote, Building2, CreditCard, Smartphone } from "lucide-react";
+import { Banknote, CreditCard, QrCode, Smartphone, Wallet } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 import type { PaymentMethodDb } from "@/types/db";
@@ -8,9 +8,9 @@ const META: Record<
   { label: string; Icon: typeof Banknote; tone: "neutral" | "blue" | "green" | "yellow" }
 > = {
   cash: { label: "Cash", Icon: Banknote, tone: "green" },
-  duitnow: { label: "DuitNow", Icon: Smartphone, tone: "blue" },
-  tng: { label: "TNG", Icon: Smartphone, tone: "blue" },
-  maybank2u: { label: "Maybank2u", Icon: Building2, tone: "yellow" },
+  online_transfer: { label: "Online", Icon: Smartphone, tone: "blue" },
+  duitnow_qr: { label: "QR", Icon: QrCode, tone: "blue" },
+  ewallet: { label: "E-wallet", Icon: Wallet, tone: "yellow" },
   other: { label: "Other", Icon: CreditCard, tone: "neutral" },
 };
 

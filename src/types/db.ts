@@ -50,9 +50,9 @@ export type BillInsert = Omit<BillRow, "id" | "created_at" | "updated_at" | "sta
 
 export type PaymentMethodDb =
   | "cash"
-  | "duitnow"
-  | "tng"
-  | "maybank2u"
+  | "online_transfer"
+  | "duitnow_qr"
+  | "ewallet"
   | "other";
 
 export interface BillMemberRow {
