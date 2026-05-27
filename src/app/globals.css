@@ -127,3 +127,46 @@ body {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Print utility classes — used on the /dashboard/[slug]/report page so
+   Ctrl+P produces a clean one-page audit. */
+.print-only { display: none; }
+
+@media print {
+  /* Default: black on white, no backgrounds, no shadows. Tabular numerics
+     stay tabular so amounts align in the printed table. */
+  html,
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  *,
+  *::before,
+  *::after {
+    background: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Toggle helper visibility for print. */
+  .print-hide { display: none !important; }
+  .print-only { display: block !important; }
+
+  /* Site chrome that isn't useful on paper. */
+  header[role="banner"],
+  nav,
+  button:not([type="submit"]) { display: none !important; }
+
+  /* Tighten layout so the report fits a couple of pages. */
+  main,
+  .receipt-card,
+  [class*="bg-surface"] {
+    padding: 0.5rem !important;
+    border-color: #000 !important;
+  }
+
+  /* Borders become a single hairline (looks nicer printed than dotted) */
+  *[class*="border"] {
+    border-color: #000 !important;
+  }
+}
