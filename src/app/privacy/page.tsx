@@ -48,12 +48,16 @@ export default function PrivacyPage() {
 
           <Section title="What we collect">
             <ul className="ml-4 list-disc space-y-1 text-foreground">
-              <li>Your email (magic-link sign-in).</li>
+              <li>
+                Your Google account email + display name (delivered by Google during
+                &quot;Sign in with Google&quot;). We don&apos;t see your Google password.
+              </li>
               <li>Display name and optional DuitNow ID you set in Settings.</li>
               <li>Bills you create — title, description, total amount, member names, due date.</li>
               <li>
-                Payment metadata your recipients submit — method (e.g. DuitNow, cash, TNG), an
-                optional 120-character note, and the image they upload as payment proof.
+                Payment metadata your recipients submit — method (cash, online transfer,
+                DuitNow QR, e-wallet, or &quot;other&quot;), an optional 120-character note,
+                and the image they upload as proof of transfer.
               </li>
               <li>
                 Anonymous read receipts — a timestamp when a recipient opens the bill link, so
