@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ExternalLink } from "lucide-react";
 
 import { AmountDisplay } from "@/components/amount-display";
 import { CopyButton } from "@/components/copy-button";
@@ -219,6 +220,7 @@ async function MemberView({
               size="sm"
             />
           </div>
+          <BankDeepLinks />
           <p className="mt-2 text-[11px] text-foreground-faint">
             Transfer{" "}
             <AmountDisplay
@@ -242,6 +244,39 @@ async function MemberView({
         amountOwedCents={member.amount_owed_cents}
       />
     </ReceiptCard>
+  );
+}
+
+// ---------- Bank-app deep links ----------
+
+/*
+ * Open-the-app shortcuts for common MY payment channels.
+ *   - TNG eWallet: official tngd:// scheme
+ *   - Maybank MAE: mae:// scheme (newer; the Maybank2u website is the
+ *     desktop fallback so we link to the universal one).
+ * Browsers without the scheme installed will show a "can't open" warning
+ * but it's harmless — they just stay on our page.
+ */
+function BankDeepLinks() {
+  const links: { label: string; href: string }[] = [
+    { label: "Open TNG eWallet", href: "tngd://" },
+    { label: "Open Maybank2u", href: "https://www.maybank2u.com.my/" },
+  ];
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {links.map((l) => (
+        <a
+          key={l.label}
+          href={l.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 border border-border bg-surface px-3 text-xs font-medium text-foreground-soft transition-colors hover:bg-surface-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:flex-none"
+        >
+          <ExternalLink size={12} aria-hidden />
+          {l.label}
+        </a>
+      ))}
+    </div>
   );
 }
 
