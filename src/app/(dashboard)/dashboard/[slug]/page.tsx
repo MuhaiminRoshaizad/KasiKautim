@@ -21,6 +21,7 @@ import { siteUrl } from "@/lib/site-url";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { BillItem } from "@/types/db";
 
+import { DeleteBillPanel } from "./delete-bill-panel";
 import { FullyCollectedCelebration } from "./fully-collected-celebration";
 import { RealtimeBillSubscription } from "./realtime-bill-subscription";
 
@@ -314,6 +315,8 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
           })}
         </ul>
       </ReceiptCard>
+
+      <DeleteBillPanel slug={bill.slug} title={bill.title} />
     </div>
   );
 }
