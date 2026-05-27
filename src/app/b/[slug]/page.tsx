@@ -106,7 +106,12 @@ async function ClaimView({ slug, bill }: { slug: string; bill: PublicBillRpc }) 
     p_slug: slug,
   });
 
+  // Organizer rows count toward the total + collected (they auto-paid
+  // their share at create time) but they're filtered out of the
+  // claim-your-name picker below — recipients can't claim the
+  // organizer's slot.
   const list = (members as PublicBillMemberRpc[] | null) ?? [];
+  const claimables = list.filter((m) => !m.is_organizer);
   const collectedCents = list
     .filter((m) => m.paid)
     .reduce((acc, m) => acc + (m.paid_amount_cents ?? m.amount_owed_cents), 0);
@@ -130,13 +135,13 @@ async function ClaimView({ slug, bill }: { slug: string; bill: PublicBillRpc }) 
 
       <ReceiptDivider label="Pick your name" />
 
-      {list.length === 0 ? (
+      {claimables.length === 0 ? (
         <p className="text-sm text-foreground-soft">
           No members on this bill yet.
         </p>
       ) : (
         <ul className="space-y-2">
-          {list.map((m) => (
+          {claimables.map((m) => (
             <ClaimRow
               key={m.member_id}
               slug={slug}

@@ -2,9 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { Check, Loader2 } from "lucide-react";
 
 import { AmountDisplay } from "@/components/amount-display";
+import { ItemClaimPicker } from "@/components/item-claim-picker";
 import { ReceiptDivider } from "@/components/receipt-card";
 import { cn } from "@/lib/cn";
 import { computeMemberShares, type MemberClaim } from "@/lib/item-split";
@@ -34,6 +34,18 @@ interface ItemPickerProps {
 
 const INITIAL: ToggleItemClaimState = { ok: null, message: "" };
 
+/*
+ * Recipient item picker. Wires the shared ItemClaimPicker into the
+ * recipient's token-based toggleItemClaim flow, subscribes to realtime
+ * updates so any claim by anyone re-renders this view, and shows a
+ * live "Your share" preview computed locally (mirrors the
+ * _recompute_item_shares trigger so the number matches what the DB
+ * will store post-toggle).
+ *
+ * Quantity-stacked items (e.g. "3 Teh Tarik" expanded by the scanner)
+ * collapse back into a single grouped row with a stepper inside the
+ * shared picker — see ItemClaimPicker for the spec.
+ */
 export function ItemPicker({
   billId,
   token,
@@ -45,9 +57,6 @@ export function ItemPicker({
 }: ItemPickerProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
-
-  // Track in-flight toggles per item so a 2nd tap during 1st request just
-  // queues — and we can show a spinner on the chip.
   const [pendingItemIds, setPendingItemIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -75,7 +84,6 @@ export function ItemPicker({
   }, [billId, router]);
 
   const me = members.find((m) => m.id === meId);
-  const myClaims = new Set(me?.claimedItemIds ?? []);
 
   // Compute live shares (mirrors what the DB will store post-claim).
   const memberClaims: MemberClaim[] = members.map((m) => ({
@@ -124,91 +132,18 @@ export function ItemPicker({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-xs text-foreground-soft">
-        Tap each item you ordered. Tap again to remove. Items shared by
-        multiple people split equally among everyone who taps them.
+        Tap each item you ordered. For lines like &quot;Nasi Lemak ×3&quot;
+        use the [−] [+] stepper to pick how many you ate.
       </p>
 
-      <ul className="space-y-2">
-        {items.map((item) => {
-          const isMine = myClaims.has(item.id);
-          const isPending = pendingItemIds.has(item.id);
-          const claimers = members.filter((m) =>
-            m.claimedItemIds.includes(item.id),
-          );
-          const otherClaimers = claimers.filter((m) => m.id !== meId);
-
-          return (
-            <li key={item.id}>
-              <button
-                type="button"
-                disabled={me.paid || isPending}
-                onClick={() => handleToggle(item.id)}
-                aria-pressed={isMine}
-                className={cn(
-                  "flex w-full items-center gap-3 border px-3 py-3 text-left transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                  isMine
-                    ? "border-ringgit bg-ringgit-soft/60"
-                    : "border-border bg-surface hover:bg-surface-deep",
-                  (me.paid || isPending) && "cursor-not-allowed opacity-70",
-                )}
-              >
-                <span
-                  className={cn(
-                    "inline-flex h-5 w-5 shrink-0 items-center justify-center border",
-                    isMine
-                      ? "border-ringgit bg-ringgit text-paper"
-                      : "border-border bg-transparent text-transparent",
-                  )}
-                  aria-hidden
-                >
-                  {isPending ? (
-                    <Loader2 size={12} className="animate-spin text-foreground" />
-                  ) : isMine ? (
-                    <Check size={12} />
-                  ) : null}
-                </span>
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span
-                      className={cn(
-                        "truncate font-mono text-sm",
-                        isMine ? "text-foreground" : "text-foreground-soft",
-                      )}
-                    >
-                      {item.name}
-                    </span>
-                    <AmountDisplay
-                      cents={item.price_cents}
-                      size="sm"
-                      muted={!isMine}
-                    />
-                  </div>
-                  {otherClaimers.length > 0 ? (
-                    <div className="mt-1 flex flex-wrap gap-1 text-[10px] text-foreground-faint">
-                      <span>Shared with:</span>
-                      {otherClaimers.map((c) => (
-                        <span
-                          key={c.id}
-                          className="border border-border bg-surface px-1.5 py-0.5 font-mono"
-                        >
-                          {c.name}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-                  {isMine && !isPending ? (
-                    <p className="mt-1 text-[10px] uppercase tracking-widest text-ringgit">
-                      ✓ Tapped · tap to remove
-                    </p>
-                  ) : null}
-                </div>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+      <ItemClaimPicker
+        items={items}
+        members={members}
+        meId={meId}
+        onToggle={handleToggle}
+        disabled={me.paid}
+        pendingItemIds={pendingItemIds}
+      />
 
       {errorMessage ? (
         <p role="alert" className="text-xs text-stamp">
