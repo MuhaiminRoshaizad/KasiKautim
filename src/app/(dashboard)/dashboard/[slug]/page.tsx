@@ -40,7 +40,7 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
     .from("bills")
     .select(
       `id, slug, title, description, total_cents, currency, due_date, status, created_at, split_mode, items, tax_cents, discount_cents,
-       bill_members(id, name, amount_owed_cents, member_token, paid, paid_at, paid_amount_cents, last_viewed_at, claimed_item_ids, created_at)`,
+       bill_members(id, name, amount_owed_cents, member_token, paid, paid_at, paid_amount_cents, last_viewed_at, claimed_item_ids, is_organizer, created_at)`,
     )
     .eq("slug", slug)
     .order("created_at", { foreignTable: "bill_members", ascending: true })
@@ -48,7 +48,12 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
 
   if (error || !bill) notFound();
 
-  const memberList = bill.bill_members ?? [];
+  // Render the organizer (is_organizer=true) row first so the "You · paid"
+  // status is visible at the top of the breakdown. The DB-level created_at
+  // order is preserved for everyone else.
+  const memberList = [...(bill.bill_members ?? [])].sort(
+    (a, b) => Number(b.is_organizer) - Number(a.is_organizer),
+  );
   // For paid members, the "collected" total is what they actually transferred
   // (paid_amount_cents). For non-paid, no contribution yet.
   const collectedCents = sumCents(
@@ -207,24 +212,28 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
             const memberLink = `${publicLink}?m=${m.member_token}`;
             const claimed = (m.claimed_item_ids as string[]) ?? [];
             const claimedItems = items.filter((it) => claimed.includes(it.id));
-            const privateWaUrl = isItemMode
-              ? whatsappShareUrl(
-                  privateItemModeShareMessage({
-                    name: m.name,
-                    title: bill.title,
-                    link: memberLink,
-                    dueDate: bill.due_date,
-                  }),
-                )
-              : whatsappShareUrl(
-                  privateShareMessage({
-                    name: m.name,
-                    title: bill.title,
-                    amountCents: m.amount_owed_cents,
-                    link: memberLink,
-                    dueDate: bill.due_date,
-                  }),
-                );
+            // Organizer rows skip the WhatsApp share builders — they
+            // don't need a per-self message.
+            const privateWaUrl = m.is_organizer
+              ? null
+              : isItemMode
+                ? whatsappShareUrl(
+                    privateItemModeShareMessage({
+                      name: m.name,
+                      title: bill.title,
+                      link: memberLink,
+                      dueDate: bill.due_date,
+                    }),
+                  )
+                : whatsappShareUrl(
+                    privateShareMessage({
+                      name: m.name,
+                      title: bill.title,
+                      amountCents: m.amount_owed_cents,
+                      link: memberLink,
+                      dueDate: bill.due_date,
+                    }),
+                  );
 
             // Paid members show their snapshotted paid amount; non-paid show
             // the live computed share (or 0 in item-mode before claims).
@@ -235,7 +244,15 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
             return (
               <li
                 key={m.id}
-                className="flex flex-wrap items-center justify-between gap-3 border border-border bg-surface px-3 py-3"
+                className={cn(
+                  // Mobile-first: stack name / amount / actions so long
+                  // names get their own line. flex-row at sm+ where there
+                  // is room for the three blocks side-by-side.
+                  "flex flex-col gap-3 border bg-surface px-3 py-3 sm:flex-wrap sm:flex-row sm:items-center sm:justify-between",
+                  m.is_organizer
+                    ? "border-ringgit/40 bg-ringgit-soft/30"
+                    : "border-border",
+                )}
               >
                 <div className="flex min-w-0 flex-col gap-1">
                   <div className="flex items-center gap-3">
@@ -250,9 +267,14 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
                             : "bg-foreground-faint",
                       )}
                     />
-                    <span className="truncate font-mono text-sm text-foreground">
+                    <span className="min-w-0 truncate font-mono text-sm text-foreground">
                       {m.name}
                     </span>
+                    {m.is_organizer ? (
+                      <span className="shrink-0 border border-ringgit px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-widest text-ringgit">
+                        You
+                      </span>
+                    ) : null}
                   </div>
                   {isItemMode && claimedItems.length > 0 ? (
                     <div className="ml-5 flex flex-wrap gap-1 text-[10px] text-foreground-faint">
@@ -272,7 +294,7 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
                     </span>
                   ) : null}
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between gap-3 sm:justify-end">
                   <AmountDisplay
                     cents={displayCents}
                     size="sm"
@@ -283,30 +305,39 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
                     lastViewedAt={m.last_viewed_at}
                   />
                 </div>
-                <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
-                  <a
-                    href={privateWaUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`Send ${m.name}'s link to WhatsApp`}
-                    className={cn(
-                      buttonClassName({
-                        variant: "secondary",
-                        size: "sm",
-                      }),
-                      "!h-11 whitespace-nowrap sm:!h-9",
-                    )}
-                  >
-                    <Send size={14} aria-hidden />
-                    Send
-                  </a>
-                  <CopyButton
-                    value={memberLink}
-                    label="Copy"
-                    size="sm"
-                    className="!h-11 sm:!h-9"
-                  />
-                </div>
+                {m.is_organizer ? (
+                  // No Send/Copy for the organizer — they don't need a
+                  // per-self link. The "You · paid" badge above is the
+                  // status cue.
+                  <p className="text-[10px] uppercase tracking-widest text-ringgit sm:w-auto sm:text-right">
+                    Auto-paid as tukang bayar
+                  </p>
+                ) : (
+                  <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
+                    <a
+                      href={privateWaUrl ?? "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Send ${m.name}'s link to WhatsApp`}
+                      className={cn(
+                        buttonClassName({
+                          variant: "secondary",
+                          size: "sm",
+                        }),
+                        "!h-11 whitespace-nowrap sm:!h-9",
+                      )}
+                    >
+                      <Send size={14} aria-hidden />
+                      Send
+                    </a>
+                    <CopyButton
+                      value={memberLink}
+                      label="Copy"
+                      size="sm"
+                      className="!h-11 sm:!h-9"
+                    />
+                  </div>
+                )}
               </li>
             );
           })}
