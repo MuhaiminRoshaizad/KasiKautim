@@ -6,8 +6,8 @@
 **Built for:** [KrackedDevs](https://krackeddevs.com/) — a Malaysian platform that hosts paid coding "bounties" where anyone can submit a project answering a posted brief. Multiple builders ship their take on the same bounty; the brief owner picks the winners.
 
 **This bounty:** [Split Bill & Payment Tracker Web App](https://krackeddevs.com/code/bounty/split-bill-payment-tracker-web-app)
-**Live URL:** https://jom-split-two.vercel.app *(URL still uses the project's original "JomSplit" name — Vercel URLs are sticky; the brand wordmark is now "KasiKautim" everywhere in the app)*
-**Repo:** https://github.com/MuhaiminRoshaizad/KasiKautim *(rename pending — old name was JomSplit)*
+**Live URL:** https://kasi-kautim.vercel.app
+**Repo:** https://github.com/MuhaiminRoshaizad/KasiKautim *(rename pending — old name was JomSplit; GitHub redirects old URLs)*
 
 ---
 
@@ -52,7 +52,7 @@ Tests: vitest, 40/40 green. Money math, slug retry, members parser, item-split m
 
 ## Try it
 
-1. Open https://jom-split-two.vercel.app on your phone.
+1. Open https://kasi-kautim.vercel.app on your phone.
 2. Tap "Continue with Google" and pick the Google account you want to use.
 3. Tap "Create a bill", scan or type in the items, add the squad.
 4. Hit "Send to group chat" — copy the link.
@@ -162,6 +162,7 @@ Scoped out of this submission, documented so judges and future readers know they
 ### Auth + onboarding
 
 - **Google-only sign-in** — no email/password fallback, no other OAuth providers. Users without a Google account can't sign up (rare in Malaysia but possible).
+- **Google consent screen shows Supabase project domain** — the "to continue to ebedzuwpdpatmjgfhzmk.supabase.co" text on Google's account picker reflects the OAuth callback domain (Supabase's hosted auth). Replacing it with a custom domain requires Supabase Pro's custom auth domain feature ($25/mo); deferred to v2. Standard situation for any small app on a hosted auth provider's free tier (Notion, Linear, etc. on similar setups had this same line until they paid for custom domains).
 - **No DuitNow ID validation** — per [PayNet's spec](https://docs.developer.paynet.my/docs/duitnow-transfer/integration/pay-by-proxy), banks validate proxies at transfer-time, not at registration. We accept any 5-50 char alphanumeric+separator string and trust the bank to reject invalid ones at payment.
 - **Session lifetime** — Supabase JWT defaults to 1 hour. After that, the user has to sign in again. We don't run a refresh job on the client.
 
