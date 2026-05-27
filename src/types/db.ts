@@ -100,8 +100,5 @@ export interface MemberByTokenRpc {
   paid_at: Iso | null;
 }
 
-export interface MarkMemberPaidRpc {
-  member_id: string;
-  paid: boolean;
-  paid_at: Iso | null;
-}
+// mark_member_paid returns a single timestamptz (the paid_at value).
+// No interface needed — the action consumes `data` as `string | null` directly.

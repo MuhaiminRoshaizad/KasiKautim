@@ -11,7 +11,6 @@ import {
 import { logger } from "@/lib/logger";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ClaimMemberSchema, MarkPaidSchema } from "@/types/schemas";
-import type { MarkMemberPaidRpc } from "@/types/db";
 
 export interface ClaimMemberState {
   ok: boolean | null;
@@ -73,7 +72,12 @@ export async function claimMember(
   });
 
   if (error) {
-    logger.warn("claim_member rpc failed", { code: error.code });
+    logger.error("claim_member rpc failed", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
     return { ok: false, message: "Couldn't claim that name. Try again." };
   }
 
@@ -106,12 +110,17 @@ export async function markPaid(
   }
 
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .rpc("mark_member_paid", { p_token: parsed.data.token })
-    .maybeSingle<MarkMemberPaidRpc>();
+  const { data, error } = await supabase.rpc("mark_member_paid", {
+    p_token: parsed.data.token,
+  });
 
   if (error) {
-    logger.warn("mark_member_paid rpc failed", { code: error.code });
+    logger.error("mark_member_paid rpc failed", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
     return {
       ok: false,
       message: "Couldn't update. Try again in a sec.",
@@ -119,10 +128,14 @@ export async function markPaid(
     };
   }
 
+  // RPC now returns timestamptz directly; data is an ISO string or null.
+  const paidAt =
+    typeof data === "string" ? data : new Date().toISOString();
+
   return {
     ok: true,
     message: "Settled. Thank you 🙏",
-    paidAt: data?.paid_at ?? new Date().toISOString(),
+    paidAt,
   };
 }
 
