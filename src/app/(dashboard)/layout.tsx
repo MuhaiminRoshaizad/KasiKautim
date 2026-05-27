@@ -5,6 +5,7 @@ import { Settings } from "lucide-react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { APP_NAME } from "@/lib/constants";
+import { getCurrentSession } from "@/lib/supabase/current-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 import { SignOutButton } from "./sign-out-button";
@@ -21,11 +22,12 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  // Use the lightweight session check (cookie-only, no network) since
+  // proxy.ts already ran getUser() in middleware. Saves a ~150ms
+  // round-trip to Supabase Auth on every dashboard navigation.
+  const session = await getCurrentSession();
+  if (!session?.user) redirect("/login");
+  const user = session.user;
 
   // Gate first-time signups behind /dashboard/welcome until they've
   // confirmed their display name + (optional) DuitNow ID. Skip the
@@ -33,6 +35,7 @@ export default async function DashboardLayout({
   // is set by proxy-session.ts as the x-pathname request header.
   const pathname = (await headers()).get("x-pathname") ?? "";
   if (!pathname.includes("/dashboard/welcome")) {
+    const supabase = await createSupabaseServerClient();
     const { data: profile } = await supabase
       .from("profiles")
       .select("setup_complete")

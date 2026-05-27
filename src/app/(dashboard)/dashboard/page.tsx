@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { AlertCircle, ArrowRight, Plus } from "lucide-react";
 
@@ -6,6 +7,7 @@ import { buttonClassName } from "@/components/button";
 import { ReceiptCard, ReceiptDivider } from "@/components/receipt-card";
 import { cn } from "@/lib/cn";
 import { sumCents } from "@/lib/money";
+import { getCurrentSession } from "@/lib/supabase/current-user";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 interface BillWithMembers {
@@ -20,10 +22,11 @@ interface BillWithMembers {
 }
 
 export default async function DashboardPage() {
+  // Cached session lookup deduped with the dashboard layout (same render).
+  // Layout already redirected if !user, so we can assume it's present here.
+  const session = await getCurrentSession();
+  const user = session?.user;
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   // RLS scopes both bills and bill_members to the organizer's rows.
   // Profile read in parallel — the layout already verified user is present.
@@ -97,7 +100,15 @@ function EmptyState({ needsDuitnow }: { needsDuitnow: boolean }) {
     <div className="mx-auto max-w-xl">
       {needsDuitnow ? <DuitnowSetupBanner /> : null}
       <ReceiptCard className="p-8 text-center">
-        <div className="font-mono text-[10px] uppercase tracking-widest text-foreground-faint">
+        <Image
+          src="/empty-bills.svg"
+          alt=""
+          width={220}
+          height={200}
+          className="mx-auto h-40 w-auto"
+          priority
+        />
+        <div className="mt-4 font-mono text-[10px] uppercase tracking-widest text-foreground-faint">
           Dashboard · empty
         </div>
         <h1 className="mt-2 font-display text-3xl uppercase tracking-tight text-foreground">
