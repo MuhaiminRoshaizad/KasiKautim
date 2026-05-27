@@ -177,6 +177,17 @@ Scoped out of this submission, documented so judges and future readers know they
 - **WhatsApp's in-app WebView quirks** — different cookie scope from regular Safari/Chrome, sometimes blocks features. We test on it explicitly during QA.
 - **Print background colors** — browsers strip background colors from PDF output by default (toner-saving heuristic). We override via `print-color-adjust: exact` for the progress bar; other potentially-load-bearing colors might still strip on aggressive print profiles.
 
+### Security trade-offs
+
+A pre-submission security audit landed before going public. The defensive controls already in place (RLS as source of truth, `member_token` via `nanoid(16)` ≈ 92 bits of entropy, `server-only`-guarded admin client, parameterized RPCs, JSX auto-escaping at every render site, EXIF strip on uploads, private storage bucket + signed URLs, OAuth callback `?next` hardened against `//evil.com` open redirects, per-user daily scanner quota, CSP + clickjacking + referrer headers) cover the realistic threat model. The items below are known and deferred:
+
+- **Slug entropy is 41 bits** (8-char, 36-char alphabet) — picked for "short shareable URL" UX. Random enumeration would take a determined crawler weeks at realistic traffic; the right defense is observability (alert on bursty `/b/[slug]` 404s) rather than longer URLs, deferred.
+- **Organizer avatar URL is not domain-whitelisted** — populated by the Google OAuth trigger so today it's always `googleusercontent.com`, but a malicious organizer could theoretically update their `profiles.avatar_url` via the Supabase API and use it as a recipient tracker. Mitigated in part by `referrerPolicy="no-referrer"` on the `<img>` tag.
+- **No per-IP rate limit on public RPCs** (`get_public_bill`, `claim_member`, `mark_member_paid`) — Supabase free tier has IP-level fairness only, not per-RPC limits. Adding application-level rate limiting requires an external KV store (a new dep we deferred).
+- **HEIC photos may be rejected** if Vercel's Node runtime ships without `libheif` — the upload action now hard-rejects rather than silently falling back to raw bytes (which would have leaked EXIF on iPhone screenshots), so the failure mode is "ask for JPG/PNG" instead of a privacy regression.
+- **CSP allows `'unsafe-inline'` for script + style** — required by Next.js's inlined hydration script and Tailwind v4's inlined style attribute. A nonce-based CSP is the right next step but needs build-pipeline restructuring; deferred.
+- **Custom auth domain on Google consent screen** — would require Supabase Pro; deferred (also documented under Auth + onboarding above).
+
 ## License
 
 [MIT](./LICENSE) © 2026 Muhammad Muhaimin Bin Roshaizad ([@minned](https://github.com/minned))
