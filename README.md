@@ -3,11 +3,11 @@
 > "Kasi kautim" = "settle it / sort it out" in Manglish (from Cantonese 搞掂 *gao dim*).
 > A web app for splitting bills the way Malaysians actually do it — share a link in the group chat, watch it settle.
 
-**Built for:** [KrackedDevs](https://krackeddevs.com/) — a Malaysian platform that hosts paid coding "bounties" where anyone can submit a project answering a posted brief. Multiple builders ship their take on the same bounty; the brief owner picks the winners.
+**Built for:** [KrackedDevs](https://krackeddevs.com/) — a Malaysian developer community platform.
 
 **This bounty:** [Split Bill & Payment Tracker Web App](https://krackeddevs.com/code/bounty/split-bill-payment-tracker-web-app)
 **Live URL:** https://kasi-kautim.vercel.app
-**Repo:** https://github.com/MuhaiminRoshaizad/KasiKautim *(rename pending — old name was JomSplit; GitHub redirects old URLs)*
+**Repo:** https://github.com/MuhaiminRoshaizad/KasiKautim
 
 ---
 
