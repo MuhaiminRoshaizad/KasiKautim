@@ -33,6 +33,7 @@ export function RealtimeReportSubscription({ billId }: { billId: string }) {
           event: "INSERT",
           schema: "public",
           table: "payment_events",
+          filter: "event_type=in.(claimed,paid)",
         },
         () => router.refresh(),
       )

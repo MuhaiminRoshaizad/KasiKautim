@@ -67,11 +67,14 @@ export default async function ReportPage({ params }: ReportPageProps) {
     .order("created_at", { ascending: true });
   const memberList = (members as MemberRecord[] | null) ?? [];
 
-  // payment_events for the timeline. Joined with bill_members for member name.
+  // payment_events for the timeline. We only surface high-signal events
+  // (claimed + paid) — `viewed` is captured per-member by `last_viewed_at`
+  // and would otherwise spam the timeline on every page refresh.
   const { data: rawEvents } = await supabase
     .from("payment_events")
     .select("id, event_type, occurred_at, bill_member_id")
     .in("bill_member_id", memberList.map((m) => m.id))
+    .in("event_type", ["claimed", "paid"])
     .order("occurred_at", { ascending: false })
     .limit(100);
 
