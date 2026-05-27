@@ -124,8 +124,8 @@ export function ItemPicker({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-xs text-foreground-soft">
-        Tap each item you ordered. Items shared by multiple people split equally
-        among everyone who taps them.
+        Tap each item you ordered. Tap again to remove. Items shared by
+        multiple people split equally among everyone who taps them.
       </p>
 
       <ul className="space-y-2">
@@ -197,6 +197,11 @@ export function ItemPicker({
                         </span>
                       ))}
                     </div>
+                  ) : null}
+                  {isMine && !isPending ? (
+                    <p className="mt-1 text-[10px] uppercase tracking-widest text-ringgit">
+                      ✓ Tapped · tap to remove
+                    </p>
                   ) : null}
                 </div>
               </button>
