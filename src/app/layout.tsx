@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 
 import { ThemeBootstrap } from "@/components/theme-bootstrap";
 import { APP_DESCRIPTION, APP_NAME } from "@/lib/constants";
+import { siteUrl } from "@/lib/site-url";
 
 import "./globals.css";
 
@@ -33,6 +34,7 @@ const caveat = Caveat({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl()),
   title: {
     default: APP_NAME,
     template: `%s · ${APP_NAME}`,
