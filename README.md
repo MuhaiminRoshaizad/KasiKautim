@@ -4,7 +4,7 @@
 > A web app for splitting bills the way Malaysians actually do it — share a link in the group chat, watch it settle.
 
 **Bounty submission:** [KrackedDevs Fintech Bounty — Split Bill & Payment Tracker Web App](https://krackeddevs.com)
-**Live URL:** https://jom-split.vercel.app
+**Live URL:** https://jom-split-two.vercel.app
 **Repo:** https://github.com/MuhaiminRoshaizad/JomSplit
 
 ---
@@ -50,7 +50,7 @@ Tests: vitest, 40/40 green. Money math, slug retry, members parser, item-split m
 
 ## Try it
 
-1. Open https://jom-split.vercel.app on your phone.
+1. Open https://jom-split-two.vercel.app on your phone.
 2. Sign in with magic link (any real email).
 3. Tap "Create a bill", scan or type in the items, add the squad.
 4. Hit "Send to group chat" — copy the link.
