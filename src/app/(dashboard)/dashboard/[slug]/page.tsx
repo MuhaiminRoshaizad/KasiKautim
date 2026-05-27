@@ -33,25 +33,22 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
   const { slug } = await params;
   const supabase = await createSupabaseServerClient();
 
+  // Single round-trip via Postgres relational join — was two sequential
+  // queries (bill → members) which serialized the network round-trip on
+  // every navigation. RLS still scopes both tables to the organizer.
   const { data: bill, error } = await supabase
     .from("bills")
     .select(
-      "id, slug, title, description, total_cents, currency, due_date, status, created_at, split_mode, items, tax_cents, discount_cents",
+      `id, slug, title, description, total_cents, currency, due_date, status, created_at, split_mode, items, tax_cents, discount_cents,
+       bill_members(id, name, amount_owed_cents, member_token, paid, paid_at, paid_amount_cents, last_viewed_at, claimed_item_ids, created_at)`,
     )
     .eq("slug", slug)
+    .order("created_at", { foreignTable: "bill_members", ascending: true })
     .single();
 
   if (error || !bill) notFound();
 
-  const { data: members } = await supabase
-    .from("bill_members")
-    .select(
-      "id, name, amount_owed_cents, member_token, paid, paid_at, paid_amount_cents, last_viewed_at, claimed_item_ids, created_at",
-    )
-    .eq("bill_id", bill.id)
-    .order("created_at", { ascending: true });
-
-  const memberList = members ?? [];
+  const memberList = bill.bill_members ?? [];
   // For paid members, the "collected" total is what they actually transferred
   // (paid_amount_cents). For non-paid, no contribution yet.
   const collectedCents = sumCents(
