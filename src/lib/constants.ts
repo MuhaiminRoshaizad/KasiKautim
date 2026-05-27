@@ -27,3 +27,12 @@ export type ThemeValue = (typeof THEME_VALUES)[number];
 
 export const BILL_STATUS = ["open", "settled", "archived"] as const;
 export type BillStatus = (typeof BILL_STATUS)[number];
+
+/*
+ * AI model IDs centralized here. Models churn: 2.0-flash was deprecated and
+ * dropped from the free tier without ceremony. Keep model IDs in one place
+ * so the next migration is a one-line edit.
+ *
+ * Source: https://ai.google.dev/pricing (Free Tier eligible)
+ */
+export const AI_SCANNER_MODEL = "gemini-2.5-flash";
