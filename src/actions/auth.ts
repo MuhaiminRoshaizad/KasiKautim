@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { siteUrl } from "@/lib/site-url";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logger";
 
@@ -32,9 +33,8 @@ export async function signInWithMagicLink(
   }
 
   const supabase = await createSupabaseServerClient();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const next = parsed.data.next?.startsWith("/") ? parsed.data.next : "/dashboard";
-  const emailRedirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent(next)}`;
+  const emailRedirectTo = `${siteUrl()}/auth/callback?next=${encodeURIComponent(next)}`;
 
   const { error } = await supabase.auth.signInWithOtp({
     email: parsed.data.email,

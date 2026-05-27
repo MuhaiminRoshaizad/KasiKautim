@@ -8,6 +8,7 @@ import { ProgressBar } from "@/components/progress-bar";
 import { ReceiptCard, ReceiptDivider } from "@/components/receipt-card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { APP_NAME } from "@/lib/constants";
+import { siteUrl } from "@/lib/site-url";
 import { touchMemberViewed } from "@/actions/members";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
@@ -32,9 +33,8 @@ export async function generateMetadata({ params }: PublicBillPageProps) {
     .rpc("get_public_bill", { p_slug: slug })
     .maybeSingle<PublicBillRpc>();
 
-  const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  const ogImage = `${siteUrl}/api/og/${slug}`;
+  const base = siteUrl();
+  const ogImage = `${base}/api/og/${slug}`;
   const title = data?.title ?? APP_NAME;
   const description = data
     ? `Split bill on ${APP_NAME}. Tap your name to settle.`
@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: PublicBillPageProps) {
     openGraph: {
       title,
       description,
-      url: `${siteUrl}/b/${slug}`,
+      url: `${base}/b/${slug}`,
       siteName: APP_NAME,
       images: [{ url: ogImage, width: 1200, height: 630 }],
       type: "website",

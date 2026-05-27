@@ -17,6 +17,7 @@ import {
   whatsappShareUrl,
 } from "@/lib/share-messages";
 import { sumCents } from "@/lib/money";
+import { siteUrl } from "@/lib/site-url";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { BillItem } from "@/types/db";
 
@@ -73,9 +74,7 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
       )
     : [];
 
-  const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  const publicLink = `${siteUrl}/b/${bill.slug}`;
+  const publicLink = `${siteUrl()}/b/${bill.slug}`;
   const genericWaUrl = whatsappShareUrl(
     genericShareMessage({ title: bill.title, link: publicLink }),
   );
