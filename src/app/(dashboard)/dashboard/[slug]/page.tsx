@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AlertTriangle, ArrowLeft, MessageCircle, Send } from "lucide-react";
+import { AlertTriangle, ArrowLeft, FileText, MessageCircle, Send } from "lucide-react";
 
 import { AmountDisplay } from "@/components/amount-display";
 import { buttonClassName } from "@/components/button";
@@ -82,7 +82,7 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <RealtimeBillSubscription billId={bill.id} />
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <Link
           href="/dashboard"
           className={cn(
@@ -93,8 +93,21 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
           <ArrowLeft size={16} aria-hidden />
           All bills
         </Link>
-        <div className="font-mono text-[10px] uppercase tracking-widest text-foreground-faint">
-          {bill.slug}
+        <div className="flex items-center gap-3">
+          <Link
+            href={`/dashboard/${bill.slug}/report`}
+            className={cn(
+              buttonClassName({ variant: "secondary", size: "sm" }),
+              "!h-9",
+            )}
+            title="Per-bill audit report with KPIs, member breakdown, payment proof, and timeline"
+          >
+            <FileText size={14} aria-hidden />
+            View report
+          </Link>
+          <span className="font-mono text-[10px] uppercase tracking-widest text-foreground-faint">
+            {bill.slug}
+          </span>
         </div>
       </div>
 
