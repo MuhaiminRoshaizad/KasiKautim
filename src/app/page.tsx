@@ -27,7 +27,7 @@ export default function HomePage() {
         <ThemeToggle />
       </header>
 
-      <section className="mt-12 flex flex-col gap-8 sm:mt-20 sm:gap-12 lg:mt-28 lg:flex-row lg:items-center lg:gap-16">
+      <section className="mt-12 flex flex-col gap-8 sm:mt-20 sm:gap-12 md:mx-auto md:mt-24 md:max-w-2xl lg:mx-0 lg:mt-28 lg:max-w-none lg:flex-row lg:items-center lg:gap-16">
         <div className="flex-1">
           <p className="text-xs font-medium uppercase tracking-[0.22em] text-foreground-faint">
             Split bills · Malaysia · 2026
@@ -73,7 +73,7 @@ export default function HomePage() {
           sample card. Framed as the problem KasiKautim solves: a real
           paper receipt sitting around waiting to be split. */}
       <section className="mt-24 lg:mt-32">
-        <div className="grid gap-8 lg:grid-cols-2 lg:items-center lg:gap-16">
+        <div className="grid gap-8 md:mx-auto md:max-w-2xl lg:mx-0 lg:max-w-none lg:grid-cols-2 lg:items-center lg:gap-16">
           <figure className="relative overflow-hidden border border-border bg-paper-deep">
             <Image
               src="/landing-receipt.jpg"
