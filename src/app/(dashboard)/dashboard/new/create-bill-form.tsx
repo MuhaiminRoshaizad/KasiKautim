@@ -38,6 +38,10 @@ export function CreateBillFormIsland() {
       total: "",
       dueDate: "",
       membersInput: "",
+      splitMode: "equal",
+      items: [],
+      taxCents: 0,
+      discountCents: 0,
     },
   });
 
@@ -46,9 +50,13 @@ export function CreateBillFormIsland() {
     const fd = new FormData();
     fd.append("title", data.title);
     fd.append("description", data.description ?? "");
-    fd.append("total", data.total);
+    fd.append("total", data.total ?? "");
     fd.append("dueDate", data.dueDate ?? "");
     fd.append("membersInput", data.membersInput);
+    fd.append("splitMode", data.splitMode ?? "equal");
+    fd.append("items", JSON.stringify(data.items ?? []));
+    fd.append("taxCents", String(data.taxCents ?? 0));
+    fd.append("discountCents", String(data.discountCents ?? 0));
 
     startTransition(async () => {
       const initial: CreateBillState = { ok: null, message: "" };

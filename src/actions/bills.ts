@@ -13,12 +13,18 @@ import {
 } from "@/lib/slugs";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { CreateBillActionSchema } from "@/types/schemas";
+import type { BillItemInput } from "@/types/schemas";
 import type { BillMemberInsert } from "@/types/db";
 
 export interface CreateBillState {
   ok: boolean | null;
   message: string;
-  fieldErrors?: Partial<Record<"title" | "description" | "total" | "dueDate" | "membersInput", string>>;
+  fieldErrors?: Partial<
+    Record<
+      "title" | "description" | "total" | "dueDate" | "membersInput" | "items",
+      string
+    >
+  >;
 }
 
 const PG_UNIQUE_VIOLATION = "23505";
@@ -27,12 +33,31 @@ export async function createBill(
   _prev: CreateBillState,
   formData: FormData,
 ): Promise<CreateBillState> {
+  // Items + numeric fields arrive as JSON-encoded strings to round-trip via FormData.
+  const rawItems = formData.get("items");
+  let parsedItems: BillItemInput[] = [];
+  if (typeof rawItems === "string" && rawItems.length > 0) {
+    try {
+      parsedItems = JSON.parse(rawItems) as BillItemInput[];
+    } catch {
+      return {
+        ok: false,
+        message: "Items payload couldn't be parsed.",
+        fieldErrors: { items: "Internal error — re-scan and try again." },
+      };
+    }
+  }
+
   const parsed = CreateBillActionSchema.safeParse({
     title: formData.get("title"),
     description: formData.get("description") ?? "",
-    total: formData.get("total"),
+    total: formData.get("total") ?? "",
     dueDate: formData.get("dueDate") ?? "",
     membersInput: formData.get("membersInput"),
+    splitMode: formData.get("splitMode") ?? "equal",
+    items: parsedItems,
+    taxCents: Number(formData.get("taxCents") ?? "0"),
+    discountCents: Number(formData.get("discountCents") ?? "0"),
   });
 
   if (!parsed.success) {
@@ -44,18 +69,19 @@ export async function createBill(
     return { ok: false, message: "Fix the highlighted fields.", fieldErrors };
   }
 
-  const { title, description, total, dueDate, membersInput } = parsed.data;
+  const {
+    title,
+    description,
+    total,
+    dueDate,
+    membersInput,
+    splitMode,
+    items,
+    taxCents,
+    discountCents,
+  } = parsed.data;
 
-  let totalCents: number;
-  try {
-    totalCents = toCents(total);
-  } catch {
-    return {
-      ok: false,
-      message: "Total amount is invalid.",
-      fieldErrors: { total: "Use a number like 12.34." },
-    };
-  }
+  // ----- Member names parsing -----
 
   const members = parseMembers(membersInput);
   if (members.length === 0) {
@@ -66,47 +92,74 @@ export async function createBill(
     };
   }
 
-  // Distribute amounts: specified amounts take precedence; remainder splits
-  // equally across the unspecified members. If specified already covers the
-  // total, no nulls allowed (would mean RM 0 share — confusing).
-  const specifiedSum = sumCents(
-    members.map((m) => m.amountCents ?? 0),
-  );
-  const nullCount = members.filter((m) => m.amountCents == null).length;
+  // ----- Total + per-member amount computation -----
 
-  if (specifiedSum > totalCents) {
-    return {
-      ok: false,
-      message: "Your custom amounts already exceed the total.",
-      fieldErrors: {
-        membersInput: `Custom amounts sum to more than RM ${(totalCents / 100).toFixed(2)}.`,
-      },
-    };
-  }
-
+  let totalCents: number;
   let assignedAmounts: number[];
-  if (nullCount === 0) {
-    if (specifiedSum !== totalCents) {
+
+  if (splitMode === "item") {
+    // Item-mode: total = sum(items) + tax - discount.
+    // Per-member amounts start at 0 and recompute as claims arrive.
+    const itemsSum = items.reduce((acc, it) => acc + it.price_cents, 0);
+    totalCents = itemsSum + taxCents - discountCents;
+    if (totalCents < 0) {
       return {
         ok: false,
-        message: "Custom amounts must sum to the total.",
+        message: "Discount can't exceed items + tax.",
+        fieldErrors: { items: "Discount > items + tax." },
+      };
+    }
+    assignedAmounts = members.map(() => 0);
+  } else {
+    // Equal-mode: existing flow — total required, distribute across members.
+    try {
+      totalCents = toCents(total ?? "");
+    } catch {
+      return {
+        ok: false,
+        message: "Total amount is invalid.",
+        fieldErrors: { total: "Use a number like 12.34." },
+      };
+    }
+    const specifiedSum = sumCents(members.map((m) => m.amountCents ?? 0));
+    const nullCount = members.filter((m) => m.amountCents == null).length;
+
+    if (specifiedSum > totalCents) {
+      return {
+        ok: false,
+        message: "Your custom amounts already exceed the total.",
         fieldErrors: {
-          membersInput: `Sum of custom amounts (RM ${(specifiedSum / 100).toFixed(2)}) doesn't match the total.`,
+          membersInput: `Custom amounts sum to more than RM ${(totalCents / 100).toFixed(2)}.`,
         },
       };
     }
-    assignedAmounts = members.map((m) => m.amountCents as number);
-  } else {
-    const remaining = totalCents - specifiedSum;
-    const split = splitEqually(remaining, nullCount);
-    let cursor = 0;
-    assignedAmounts = members.map((m) =>
-      m.amountCents != null ? m.amountCents : split[cursor++]!,
-    );
+    if (nullCount === 0) {
+      if (specifiedSum !== totalCents) {
+        return {
+          ok: false,
+          message: "Custom amounts must sum to the total.",
+          fieldErrors: {
+            membersInput: `Sum of custom amounts (RM ${(specifiedSum / 100).toFixed(2)}) doesn't match the total.`,
+          },
+        };
+      }
+      assignedAmounts = members.map((m) => m.amountCents as number);
+    } else {
+      const remaining = totalCents - specifiedSum;
+      const split = splitEqually(remaining, nullCount);
+      let cursor = 0;
+      assignedAmounts = members.map((m) =>
+        m.amountCents != null ? m.amountCents : split[cursor++]!,
+      );
+    }
   }
 
+  // ----- Insert -----
+
   const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) {
     return { ok: false, message: "You're not signed in." };
   }
@@ -124,6 +177,10 @@ export async function createBill(
           total_cents: totalCents,
           currency: "MYR",
           due_date: dueDate || null,
+          split_mode: splitMode,
+          items: splitMode === "item" ? items : [],
+          tax_cents: splitMode === "item" ? taxCents : 0,
+          discount_cents: splitMode === "item" ? discountCents : 0,
         })
         .select("id, slug")
         .single();
@@ -133,12 +190,11 @@ export async function createBill(
         throw error;
       }
       return data;
-    }).then((b) => {
-      // b is { id, slug } from inside the helper above
-      return insertMembersOrCleanup(b.id, b.slug);
-    });
+    }).then((b) => insertMembersOrCleanup(b.id, b.slug));
   } catch (err) {
-    logger.error("createBill failed", { err: err instanceof Error ? err.message : "unknown" });
+    logger.error("createBill failed", {
+      err: err instanceof Error ? err.message : "unknown",
+    });
     return {
       ok: false,
       message: "Couldn't create the bill. Try again in a sec.",
@@ -155,7 +211,6 @@ export async function createBill(
 
     const { error } = await supabase.from("bill_members").insert(rows);
     if (error) {
-      // Roll back: delete the just-created bill (organizer-scoped via RLS).
       await supabase.from("bills").delete().eq("id", billId);
       throw error;
     }
