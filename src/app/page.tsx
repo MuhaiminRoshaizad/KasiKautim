@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
@@ -63,11 +64,40 @@ export default function HomePage() {
         </div>
 
         <div className="flex-1">
-          {/* AmbientReceipts on the viewport margins (2xl+) already
-              carries the atmospheric weight — a literal receipt photo
-              behind this card was redundant and composed badly
-              (the card looked stickered onto the photo, not part of it). */}
           <SampleReceipt />
+        </div>
+      </section>
+
+      {/* "Real receipt" panel — gives the moody Unsplash receipt closeup
+          its own moment instead of awkwardly stacking it behind the hero
+          sample card. Framed as the problem KasiKautim solves: a real
+          paper receipt sitting around waiting to be split. */}
+      <section className="mt-24 lg:mt-32">
+        <div className="grid gap-8 lg:grid-cols-2 lg:items-center lg:gap-16">
+          <figure className="relative overflow-hidden border border-border bg-paper-deep">
+            <Image
+              src="/landing-receipt.jpg"
+              alt="Closeup of a thermal-printed paper receipt"
+              width={1600}
+              height={1067}
+              className="h-full w-full object-cover"
+            />
+          </figure>
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-foreground-faint">
+              Behind every awkward group chat
+            </p>
+            <p className="mt-3 font-display text-3xl uppercase leading-[1.05] tracking-tight text-foreground sm:text-4xl">
+              a forgotten receipt.
+            </p>
+            <p className="mt-5 max-w-md text-sm leading-relaxed text-foreground-soft sm:text-base">
+              Every Malaysian has a paper receipt sitting in a wallet, a
+              car cupholder, or somewhere in their photo roll, waiting to
+              be split. {APP_NAME} turns that receipt into one share link
+              your group chat can actually settle — no chasing, no awkward
+              calculations.
+            </p>
+          </div>
         </div>
       </section>
 
