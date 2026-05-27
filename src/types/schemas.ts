@@ -8,14 +8,6 @@ import { LIMITS } from "@/lib/constants";
  * truth is the SQL CHECK constraints in 0001_init.sql.
  */
 
-// Raw money string like "12.34" — kept as string to round-trip safely through
-// FormData. Converted to cents server-side via lib/money.ts#toCents.
-const moneyString = z
-  .string()
-  .trim()
-  .min(1, "Enter an amount.")
-  .regex(/^\d+(\.\d{1,2})?$/, "Use a number like 12.34.");
-
 const optionalDate = z
   .string()
   .trim()
@@ -31,7 +23,27 @@ const membersInput = z
   .min(1, "Add at least one person.");
 
 /**
+ * One line-item on an item-mode bill. id is a nanoid minted by the client
+ * when items come from the scanner; price_cents matches the DB JSONB shape.
+ */
+export const BillItemSchema = z.object({
+  id: z.string().min(1).max(32),
+  name: z.string().trim().min(1).max(80),
+  price_cents: z.number().int().nonnegative(),
+});
+export type BillItemInput = z.infer<typeof BillItemSchema>;
+
+const SplitModeSchema = z.enum(["equal", "item"]);
+export type SplitModeInput = z.infer<typeof SplitModeSchema>;
+
+/**
  * Used by the client-side RHF resolver on /dashboard/new.
+ *
+ * splitMode === 'equal':  `total` is required and split across members
+ *                         (members can have custom amounts via membersInput).
+ * splitMode === 'item':   `items` is required; `total` is computed as
+ *                         sum(items) + tax - discount. `membersInput` is
+ *                         names-only; per-person amounts come from claims.
  */
 export const CreateBillFormSchema = z.object({
   title: z
@@ -45,17 +57,57 @@ export const CreateBillFormSchema = z.object({
     .max(LIMITS.billDescription, `Keep it under ${LIMITS.billDescription} characters.`)
     .optional()
     .or(z.literal("")),
-  total: moneyString,
+  total: z.string().optional().or(z.literal("")),
   dueDate: optionalDate,
   membersInput,
+  splitMode: SplitModeSchema.default("equal"),
+  items: z.array(BillItemSchema).optional().default([]),
+  taxCents: z.number().int().nonnegative().optional().default(0),
+  discountCents: z.number().int().nonnegative().optional().default(0),
 });
 
-export type CreateBillForm = z.infer<typeof CreateBillFormSchema>;
+// Use z.input so optional+defaulted fields stay optional for RHF defaultValues.
+// z.output would mark them required (because defaults are applied on parse).
+export type CreateBillForm = z.input<typeof CreateBillFormSchema>;
 
 /**
- * Used by the createBill server action. Same fields as the form, validated again.
+ * Server-action schema with cross-field validation. Equal-mode needs a
+ * non-empty total string; item-mode needs at least one item.
  */
-export const CreateBillActionSchema = CreateBillFormSchema;
+export const CreateBillActionSchema = CreateBillFormSchema.superRefine(
+  (data, ctx) => {
+    if (data.splitMode === "equal") {
+      if (!data.total || !data.total.trim()) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["total"],
+          message: "Enter a total amount.",
+        });
+      } else if (!/^\d+(\.\d{1,2})?$/.test(data.total.trim())) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["total"],
+          message: "Use a number like 12.34.",
+        });
+      }
+    } else {
+      if (!data.items || data.items.length === 0) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["items"],
+          message: "Item-mode bills need at least one item.",
+        });
+      }
+    }
+  },
+);
+
+/**
+ * Item-mode bills don't validate moneyString anymore (total is computed).
+ * Equal-mode bills still must validate `total`. Below is the shape consumed
+ * by the action — kept separate from form schema so the legacy moneyString
+ * pattern doesn't trip on empty total in item-mode.
+ */
 
 /**
  * Parsed member line — output of lib/members-parser.ts.
