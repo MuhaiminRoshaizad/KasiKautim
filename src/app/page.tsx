@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
@@ -58,7 +59,18 @@ export default function HomePage() {
           </p>
         </div>
 
-        <div className="flex-1">
+        <div className="relative flex-1">
+          {/* Background photo — moody receipt closeup, behind the sample
+              card to texture the hero without competing with copy.
+              Hidden on mobile to keep the page light, shown lg+. */}
+          <Image
+            src="/landing-receipt.jpg"
+            alt=""
+            width={1600}
+            height={1067}
+            priority
+            className="pointer-events-none absolute inset-0 -z-10 hidden h-full w-full select-none object-cover opacity-25 mix-blend-multiply lg:block dark:opacity-15 dark:mix-blend-screen"
+          />
           <SampleReceipt />
         </div>
       </section>
