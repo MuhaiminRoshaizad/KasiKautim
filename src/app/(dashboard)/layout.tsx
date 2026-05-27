@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { signOut } from "@/actions/auth";
 import { APP_NAME } from "@/lib/constants";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+const ICON_BTN =
+  "inline-flex h-10 w-10 items-center justify-center border border-border bg-surface text-foreground transition-colors hover:bg-surface-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 /*
  * Wraps every /dashboard/* page. proxy.ts is the first line of defence;
@@ -32,13 +35,21 @@ export default async function DashboardLayout({
           {APP_NAME}
         </Link>
         <div className="flex items-center gap-2">
+          <Link
+            href="/dashboard/settings"
+            aria-label="Settings"
+            title="Settings"
+            className={ICON_BTN}
+          >
+            <Settings size={18} aria-hidden />
+          </Link>
           <ThemeToggle />
           <form action={signOut}>
             <button
               type="submit"
               aria-label="Sign out"
               title="Sign out"
-              className="inline-flex h-10 w-10 items-center justify-center border border-border bg-surface text-foreground transition-colors hover:bg-surface-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className={ICON_BTN}
             >
               <LogOut size={18} aria-hidden />
             </button>
