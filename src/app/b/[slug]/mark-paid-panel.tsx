@@ -366,11 +366,16 @@ function ProofPicker({
       <span className="text-[11px] font-medium uppercase tracking-widest text-foreground-soft">
         Proof of transfer (optional)
       </span>
+      {/* No `capture` attribute on purpose — payment proofs are
+          almost always screenshots of a bank / TNG transfer that
+          already live in the gallery. capture="environment" would
+          force the camera and hide the gallery picker on both iOS
+          and Android, making the optional proof effectively
+          unuploadable for the common case. */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-        capture="environment"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];

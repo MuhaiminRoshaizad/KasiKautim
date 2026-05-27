@@ -117,11 +117,16 @@ export function ReceiptScanner({ onScanned }: ReceiptScannerProps) {
         </div>
       </div>
 
+      {/* No `capture` attribute on purpose — with capture="environment"
+          mobile browsers skip the gallery picker entirely and jump
+          straight into the camera. Without it, iOS shows a "Photo
+          Library / Take Photo / Choose File" sheet and Android shows
+          its app chooser, letting users pick a receipt photo they
+          already took. */}
       <input
         ref={inputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-        capture="environment"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
