@@ -1,6 +1,8 @@
 "use server";
 
 import { generateObject, NoObjectGeneratedError } from "ai";
+
+import { expandQuantityLines } from "@/lib/scanner-quantity";
 import { google } from "@ai-sdk/google";
 import { z } from "zod";
 
@@ -165,7 +167,7 @@ export async function scanReceipt(
     return {
       ok: true,
       message: "Scanned.",
-      receipt: object,
+      receipt: { ...object, items: expandQuantityLines(object.items) },
     };
   } catch (err) {
     if (NoObjectGeneratedError.isInstance(err)) {
@@ -184,3 +186,4 @@ export async function scanReceipt(
     };
   }
 }
+
