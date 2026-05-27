@@ -23,7 +23,9 @@ const variants: Record<Variant, string> = {
 };
 
 const sizes: Record<Size, string> = {
-  sm: "h-9 px-3 text-sm",
+  // Mobile bumps sm to 44px (iOS HIG / Material tap-target minimum) and
+  // tightens back to 36px at sm+ where mouse precision is higher.
+  sm: "h-11 sm:h-9 px-3 text-sm",
   md: "h-11 px-5 text-base",
   lg: "h-14 px-7 text-lg",
 };

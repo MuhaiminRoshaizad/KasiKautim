@@ -10,8 +10,10 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 import { SignOutButton } from "./sign-out-button";
 
+// h-11 on mobile meets the 44px tap-target minimum (iOS HIG / Material);
+// tightens to 40px at sm+ where mouse precision is higher.
 const ICON_BTN =
-  "inline-flex h-10 w-10 items-center justify-center border border-border bg-surface text-foreground transition-colors hover:bg-surface-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+  "inline-flex h-11 w-11 sm:h-10 sm:w-10 items-center justify-center border border-border bg-surface text-foreground transition-colors hover:bg-surface-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 /*
  * Wraps every /dashboard/* page. proxy.ts is the first line of defence;

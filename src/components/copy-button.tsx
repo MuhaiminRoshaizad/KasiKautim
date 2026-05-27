@@ -16,7 +16,9 @@ interface CopyButtonProps {
 }
 
 const SIZES = {
-  sm: "h-9 px-3 text-sm gap-1.5",
+  // Mobile bumps sm to 44px to match the Button component's tap-target
+  // floor; tightens at sm+ for mouse-precise contexts.
+  sm: "h-11 sm:h-9 px-3 text-sm gap-1.5",
   md: "h-11 px-4 text-base gap-2",
   lg: "h-14 px-6 text-lg gap-2",
 } as const;
