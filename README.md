@@ -122,16 +122,59 @@ Light mode is receipt paper. Dark mode is thermal-printer carbon copy.
 
 ## Known limitations (documented honestly)
 
-Scoped out of this submission, documented so judges and future readers know they're known:
+Scoped out of this submission, documented so judges and future readers know they're known. Grouped by area.
 
-- **Item edits after bill creation** — not supported. Item-mode bills lock items + tax + total at creation. Workaround: delete + recreate.
-- **Custom paid amount** — recipients can only mark-paid for their fair share. "Tip" and "round up" deferred.
-- **Settle-up round** — when fair-share drifts after late claims, the delta is stored and surfaced on the report but no UX to reconcile it.
-- **Proof storage cleanup** — deleted bills leave orphan proof images in Storage. No cron yet.
-- **HEIC EXIF strip** — depends on libheif being available in the runtime; soft-fails to raw bytes if not.
-- **Bill total locked at creation** in item-mode (intentional — see item edits limitation).
-- **Storage signed URL TTL** is 24h on the report. After 24h, print-late shows broken images; re-open the report to refresh.
-- **Multi-currency conversion** — scanner detects but JomSplit only stores MYR. Non-MYR scans are blocked at the apply-to-form step.
+### AI receipt scanner (Gemini 2.5 Flash)
+
+- **Two-receipts-in-one-photo** — Gemini will extract items from both receipts and merge them into one items list with a total that doesn't reconcile against either receipt. The "receipt math reconciles" check will fail; user has to manually delete the wrong items.
+- **Handwritten receipts** — accuracy drops sharply on handwritten or smudged thermal-printed receipts. Latin-script printed receipts (the 90% case in Malaysia) work reliably.
+- **Non-MYR receipts** — scanner detects the currency code; if it's not MYR, the apply-to-form step is blocked. We don't do FX conversion. Submitted as "scan a USD receipt → see error" rather than "scan a USD receipt → silently store wrong amount."
+- **Free-tier rate limit** — Google AI Studio free tier caps Gemini 2.5 Flash at 15 req/min, 1500 req/day. A judge testing rapidly could exhaust this; falls back to a "rate limited, try again" message and the user can still enter items manually.
+- **Subtotal vs total reconciliation** — when items + tax don't match the printed total exactly (rounding, hidden fees, manual receipt edits), the UI shows a "math doesn't reconcile" hint; we trust the printed total over the items sum.
+
+### Items + claiming
+
+- **Item edits after bill creation** — items + tax + discount are locked at creation. Workaround: delete + recreate the bill.
+- **Per-person quantity for a single item** — `claim_item` is binary (you tapped this line or you didn't). If a receipt has one line "3 NASI LEMAK RM 25.50" and Ali ordered 2 + Faiz ordered 1, both tapping the chip splits it 50/50 (RM 12.75 each) rather than 2:1. Workaround: manually split that one line into two items in the editor before creating the bill — "Nasi Lemak (Ali x2) RM 17.00" + "Nasi Lemak (Faiz x1) RM 8.50".
+- **Repeated identical items** — when a receipt lists the same item 10 times as 10 separate lines (rare, usually multi-pax orders), the picker shows 10 identical chips. Each claimer taps their own. Math is correct; UX is visually noisy. Can be cleaned up by manually consolidating lines in the editor.
+- **No item-level partial claim** — if you ordered half of someone's appetizer, neither of you can express that today. Workaround: pretend it's a whole one and tap once between you two.
+
+### Payment + reconciliation
+
+- **Custom paid amount** — recipients can only mark-paid for the fair share JomSplit computed. "Tip", "round up", "I'll add the parking fee" deferred to v2.
+- **Settle-up round** — when fair shares shift after late claims (someone new claims an item after others paid), the delta is stored and surfaced on the report but there's no in-app UX to reconcile it. Organizer eats the diff or DMs whoever owes more.
+- **No un-mark-paid** — once a recipient confirms "I've paid", they cannot reverse it themselves. The tukang bayar has to delete the bill if it was a mistake. Intentional — pretending an irreversible action is undoable would cause worse confusion.
+- **No partial bill payment** — you either mark your entire share paid or you don't. "I'll pay half now, half on Friday" isn't supported.
+
+### Identity + linking
+
+- **Single device per claim** — claim_member binds a slot to the first device that taps the name. The tap-to-remove "Not you?" flow lets recipients escape that mistake, but if someone bookmarked a per-member URL on two devices, only the first device's payment is recorded against that slot.
+- **Per-member token in URL** — anyone with the `/b/[slug]?m=token` link IS that recipient. We don't gate it with a PIN or extra credential because adding friction kills the WhatsApp flow. If someone forwards their per-member link, the new holder can mark-paid as them.
+- **No account merging** — sign in with a different Google account and your bills are separate. We don't support transferring bills between accounts.
+
+### Storage + retention
+
+- **Proof storage cleanup** — deleting a bill cascades through `bill_members` + `payment_events` via FK ON DELETE CASCADE, but the proof images in Storage are not auto-cleaned (would need a cron job we haven't built). Orphans accumulate.
+- **HEIC EXIF strip** — runtime depends on libheif being bundled in the Vercel function. If it isn't (Vercel's Node 24 default), the EXIF strip soft-fails to a raw byte copy. Privacy degraded gracefully but not eliminated for HEIC uploads.
+- **Storage signed URL TTL** — 24 hours on the report page proof thumbnails. Re-print after that → broken images until you reload the page (which mints fresh URLs).
+- **No bill archive / soft delete** — bill delete is destructive. A "settled bills" archive folder isn't built; once paid + acknowledged, organizers either keep them visible or delete them.
+
+### Auth + onboarding
+
+- **Google-only sign-in** — no email/password fallback, no other OAuth providers. Users without a Google account can't sign up (rare in Malaysia but possible).
+- **No DuitNow ID validation** — per [PayNet's spec](https://docs.developer.paynet.my/docs/duitnow-transfer/integration/pay-by-proxy), banks validate proxies at transfer-time, not at registration. We accept any 5-50 char alphanumeric+separator string and trust the bank to reject invalid ones at payment.
+- **Session lifetime** — Supabase JWT defaults to 1 hour. After that, the user has to sign in again. We don't run a refresh job on the client.
+
+### Performance + infrastructure
+
+- **Cold-start latency** — Vercel free tier sleeps idle functions; first hit after a quiet period adds ~500-1000ms. Subsequent hits are fast (~150-300ms).
+- **Supabase region** — project is in `ap-northeast-1` (Tokyo). From Malaysia that's ~50-100ms RTT; from Europe / US that's worse. Acceptable since the audience is Malaysian.
+- **OG image scrape timeout** — WhatsApp's link-preview scraper times out at ~3-5s. If our `/api/og/[slug]` route cold-starts past that on the first scrape, WhatsApp caches "no preview" for 24h. Mitigation: share fresh slugs / use the Facebook Sharing Debugger to force a rescrape.
+
+### Mobile + browser
+
+- **WhatsApp's in-app WebView quirks** — different cookie scope from regular Safari/Chrome, sometimes blocks features. We test on it explicitly during QA.
+- **Print background colors** — browsers strip background colors from PDF output by default (toner-saving heuristic). We override via `print-color-adjust: exact` for the progress bar; other potentially-load-bearing colors might still strip on aggressive print profiles.
 
 ## License
 
