@@ -91,21 +91,21 @@ export function CreateBillFormIsland() {
   const handleScanApplied = (payload: ScannerApplyPayload) => {
     if (payload.title) setValue("title", payload.title, { shouldValidate: true });
 
-    if (splitMode === "equal") {
-      // Equal mode: only the total moves into the form. Items live in scanner.
-      if (payload.total) setValue("total", payload.total, { shouldValidate: true });
-    } else {
-      // Item mode: pull items + tax + discount into the form-managed state.
-      setItems(
-        payload.items.map((it) => ({
-          id: it.id,
-          name: it.name,
-          price: fromCents(it.price_cents).toFixed(2),
-        })),
-      );
-      setTaxString(fromCents(payload.taxCents).toFixed(2));
-      setDiscountString(fromCents(payload.discountCents).toFixed(2));
-    }
+    // Populate BOTH modes' state from the scan. The active splitMode just
+    // decides which fields are rendered — toggling between Equal and By
+    // Items should preserve everything the scanner found, not silently
+    // wipe the inactive mode's data (which forced users to "Apply to form"
+    // a second time after switching).
+    if (payload.total) setValue("total", payload.total, { shouldValidate: true });
+    setItems(
+      payload.items.map((it) => ({
+        id: it.id,
+        name: it.name,
+        price: fromCents(it.price_cents).toFixed(2),
+      })),
+    );
+    setTaxString(fromCents(payload.taxCents).toFixed(2));
+    setDiscountString(fromCents(payload.discountCents).toFixed(2));
   };
 
   const onSubmit = handleSubmit((data) => {
