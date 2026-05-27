@@ -60,6 +60,17 @@ const ReceiptSchema = z.object({
     .describe(
       "Sum of all tax + service-charge lines in cents (SST 6%, GST 6%, Service Tax, Service Charge 10%, Rounding). Null if none shown.",
     ),
+  discount_cents: z
+    .number()
+    .int()
+    .nonnegative()
+    .nullable()
+    .describe(
+      "Sum of all discount/promo/voucher lines in cents, expressed as a POSITIVE number. " +
+        "Look for lines like 'DISCOUNT', 'PROMO', 'VOUCHER', 'OFFER', 'COUPON', 'REBATE', " +
+        "'BOGO', 'LOYALTY', or a leading minus sign before an amount in the totals area. " +
+        "Null if none shown.",
+    ),
   total_cents: z
     .number()
     .int()
@@ -138,10 +149,11 @@ export async function scanReceipt(
               type: "text",
               text:
                 "You are a precise receipt parser for a Malaysian split-bill app. " +
-                "Extract: merchant name, every line-item with its price, the subtotal (if labelled), the tax/service sum (if any), the final total the customer paid, and the currency. " +
+                "Extract: merchant name, every line-item with its price, the subtotal (if labelled), the tax/service sum (if any), any discount/promo/voucher amounts (as positive cents), the final total the customer paid, and the currency. " +
                 "Convert all amounts to integer cents (RM 12.50 -> 1250). " +
                 "Critical: Malaysian receipts often show 'SUBTOTAL' that already includes SST/GST/service charge — never add tax twice. " +
                 "If 'CASH' and 'CHANGE' lines are both present, the total customer paid equals Cash - Change. Use that as a sanity check. " +
+                "Item names can be in English, Bahasa Malaysia, Chinese, or Tamil — preserve the original script. " +
                 "If the receipt is unreadable, return empty items and zero total — do not invent items or amounts.",
             },
             { type: "file", data: bytes, mediaType: file.type },
