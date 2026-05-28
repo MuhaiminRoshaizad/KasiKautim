@@ -251,10 +251,17 @@ body {
   nav,
   button:not([type="submit"]) { display: none !important; }
 
-  /* Tighten layout so the report fits a couple of pages. */
+  /* Tighten layout so the report fits a couple of pages. The
+     [class*="bg-surface"] catch-all that used to live here was the
+     reason the progress bar fill rendered as a 0-height invisible
+     strip in saved PDFs: the bar has bg-surface as its base colour,
+     the catch-all matched it, padding: 0.5rem on a box-sizing:
+     border-box element with h-2 (8px) collapsed the content area to
+     a negative value (clamped to 0), so the fill inherited zero
+     height regardless of background. Target the real card class
+     instead, which is applied by ReceiptCard. */
   main,
-  .receipt-card,
-  [class*="bg-surface"] {
+  .receipt-card {
     padding: 0.5rem !important;
     border-color: #000 !important;
   }

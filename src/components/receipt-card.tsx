@@ -20,6 +20,9 @@ export function ReceiptCard({
   return (
     <div
       className={cn(
+        // `receipt-card` is referenced by the print stylesheet to tighten
+        // padding for the saved PDF. Keep it on every variant.
+        "receipt-card",
         "relative isolate w-full",
         // Slightly off-white paper, soft drop-shadow imitating receipt curl.
         tissue ? "bg-tissue" : "bg-surface",
