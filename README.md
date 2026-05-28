@@ -124,7 +124,7 @@ Light mode is receipt paper. Dark mode is thermal-printer carbon copy.
 
 ## Known limitations (documented honestly)
 
-Scoped out of this submission, documented so judges and future readers know they're known. Grouped by area.
+Scoped out of this submission, documented so future readers know they're known. Grouped by area.
 
 ### AI receipt scanner (Gemini 2.5 Flash)
 
