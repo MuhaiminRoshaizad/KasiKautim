@@ -114,10 +114,13 @@ export async function createBill(
 
   let totalCents: number;
   let assignedAmounts: number[];
-  // Organizer's auto-paid share, computed alongside the per-member splits
-  // below. Item-mode computes from claimed items + proportional tax share;
-  // equal-mode treats organizer as one extra null-amount participant and
-  // gives them the remainder-absorbing slot from splitEqually.
+  // Organizer's auto-paid share. Equal-mode computes it inline below
+  // (organizer is treated as an extra null-amount participant in
+  // splitEqually). Item-mode leaves it at 0 here and defers to the
+  // Postgres _recompute_item_shares trigger after the insert — same
+  // SQL logic that handles every other claimer, so the organizer's
+  // share stays consistent with the live state of claims even as
+  // recipients claim the same items later.
   let organizerShareCents = 0;
 
   if (splitMode === "item") {
@@ -133,17 +136,6 @@ export async function createBill(
       };
     }
     assignedAmounts = members.map(() => 0);
-
-    if (includeMyself) {
-      const myClaims = new Set(myClaimedItemIds);
-      const mySubtotal = items
-        .filter((it) => myClaims.has(it.id))
-        .reduce((a, it) => a + it.price_cents, 0);
-      const netCharge = taxCents - discountCents;
-      const myTaxShare =
-        itemsSum > 0 ? Math.floor((mySubtotal * netCharge) / itemsSum) : 0;
-      organizerShareCents = mySubtotal + myTaxShare;
-    }
   } else {
     // Equal-mode: existing flow — total required, distribute across members.
     try {
@@ -278,23 +270,31 @@ export async function createBill(
       throw error;
     }
 
-    // Organizer-as-diner: insert a paid, is_organizer member row using
-    // the share computed up-front. claimed_item_ids drives display in
-    // item-mode (so others see "Shared with: Aisha" badges); the
-    // _recompute_item_shares trigger will skip this row going forward
-    // since paid=true, so the snapshotted paid_amount_cents stays put.
+    // Organizer-as-diner: insert a paid, is_organizer member row.
+    // claimed_item_ids drives display (others see "Shared with: Aisha"
+    // badges in item-mode).
+    //
+    // Equal-mode: share was computed up-front via splitEqually, insert
+    // with the snapshot. Item-mode: insert at 0 and let
+    // _recompute_item_shares fill in the correct values — that function
+    // (post-migration 0015) updates paid + unpaid members, and for
+    // is_organizer rows it tracks paid_amount_cents to the live share
+    // so the organizer's "personal contribution" floats with the claim
+    // state instead of locking at a wrong sole-claimer snapshot.
     if (includeMyself) {
+      const initialShare =
+        splitMode === "equal" ? organizerShareCents : 0;
       const { error: orgError } = await supabase
         .from("bill_members")
         .insert({
           bill_id: billId,
           name: organizerDisplayName,
-          amount_owed_cents: organizerShareCents,
+          amount_owed_cents: initialShare,
           member_token: newMemberToken(),
           is_organizer: true,
           paid: true,
           paid_at: new Date().toISOString(),
-          paid_amount_cents: organizerShareCents,
+          paid_amount_cents: initialShare,
           payment_method: "cash",
           claimed_item_ids: splitMode === "item" ? myClaimedItemIds : [],
         });
@@ -303,6 +303,24 @@ export async function createBill(
         // bill when the checkbox said otherwise. Members cascade-delete.
         await supabase.from("bills").delete().eq("id", billId);
         throw orgError;
+      }
+
+      // Item-mode: trigger a recompute so the organizer's amount_owed
+      // and paid_amount get filled in from the actual claim state via
+      // the same SQL the rest of the app uses. Errors here aren't
+      // fatal — the row is inserted; the next toggle_item_claim from
+      // any recipient will recompute anyway. Logged just in case.
+      if (splitMode === "item" && myClaimedItemIds.length > 0) {
+        const { error: recomputeError } = await supabase.rpc(
+          "_recompute_item_shares",
+          { p_bill_id: billId },
+        );
+        if (recomputeError) {
+          logger.warn("organizer share recompute failed", {
+            code: recomputeError.code,
+            message: recomputeError.message,
+          });
+        }
       }
     }
 
