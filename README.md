@@ -50,7 +50,7 @@ KasiKautim replaces step 2–4 with **one link** dropped into the group chat. Re
 | Forms | react-hook-form + zod |
 | Hosting | Vercel |
 
-Tests: vitest, 58/58 green. Money math, slug retry, members parser, item-split math, scanner quantity expansion, item-group display collapse.
+Tests: vitest, 66/66 green. Money math, slug retry, members parser, item-split math, scanner quantity expansion (both name-prefix and Gemini qty/unit fields), item-group display collapse.
 
 ## Try it
 
