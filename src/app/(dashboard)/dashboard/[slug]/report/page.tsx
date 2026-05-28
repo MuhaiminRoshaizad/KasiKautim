@@ -266,8 +266,9 @@ export default async function ReportPage({ params }: ReportPageProps) {
           Member breakdown
         </h2>
         <p className="mt-1 text-xs text-foreground-soft">
-          Fair share is live-computed. Paid amount is the real money snapshot.
-          Delta highlights gaps when claims shift after someone paid.
+          Fair share is what they owe right now based on the latest claims.
+          Paid is what they actually sent. Difference flags over- or
+          under-payments when more people claim items after someone paid.
         </p>
 
         <ReceiptDivider />
@@ -337,7 +338,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
                       <span className="text-foreground-faint">—</span>
                     )}
                   </ColumnFigure>
-                  <ColumnFigure label="Δ Delta">
+                  <ColumnFigure label="Difference">
                     {m.paid ? <DeltaCell cents={delta} /> : (
                       <span className="text-foreground-faint">—</span>
                     )}
@@ -482,6 +483,15 @@ function StatusBadge({
   );
 }
 
+/*
+ * Difference cell colour signals are intentional:
+ *   - settled (0)        → ringgit green: nothing to do
+ *   - overpaid (> 0)     → highlighter yellow: organizer owes this
+ *                          person a refund (good outcome, attention-
+ *                          worthy but not bad)
+ *   - underpaid (< 0)    → stamp red: this person still owes more
+ *                          (bad outcome, organizer needs to chase)
+ */
 function DeltaCell({ cents }: { cents: number }) {
   if (cents === 0) {
     return (
@@ -491,16 +501,14 @@ function DeltaCell({ cents }: { cents: number }) {
     );
   }
   if (cents > 0) {
-    // Overpaid — blue-ish using highlighter tone
     return (
-      <span className="text-foreground">
-        +<AmountDisplay cents={cents} size="sm" />
+      <span className="text-highlighter" title="Overpaid — refund expected">
+        +<AmountDisplay cents={cents} size="sm" className="text-highlighter" />
       </span>
     );
   }
-  // Underpaid — red
   return (
-    <span className="text-stamp">
+    <span className="text-stamp" title="Underpaid — still owed">
       <AmountDisplay cents={cents} size="sm" className="text-stamp" />
     </span>
   );
