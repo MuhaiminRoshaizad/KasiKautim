@@ -2,7 +2,7 @@
 
 import { generateObject, NoObjectGeneratedError } from "ai";
 
-import { expandQuantityLines } from "@/lib/scanner-quantity";
+import { expandQuantityFields, expandQuantityLines } from "@/lib/scanner-quantity";
 import { google } from "@ai-sdk/google";
 import { z } from "zod";
 
@@ -39,12 +39,29 @@ const ReceiptSchema = z.object({
           .int()
           .nonnegative()
           .describe(
-            "Price for THIS line in cents. RM 12.50 -> 1250. If a quantity is shown next to the item (e.g. '2 AYAM RM 14.00'), this number is the LINE TOTAL printed on the receipt, not the unit price.",
+            "LINE TOTAL for this item in cents (RM 12.50 -> 1250). This is the printed amount on the right of the line, NOT the unit price. For a 'SET NASI AYAM GEPUK RM26.00 / 2 x RM13.00' line, price_cents is 2600 and the unit price goes in unit_price_cents below.",
+          ),
+        quantity: z
+          .number()
+          .int()
+          .min(1)
+          .max(99)
+          .nullable()
+          .describe(
+            "Quantity ordered when the receipt shows a 'qty x unit_price' sub-line under or beside the item (e.g. '2 x RM13.00' below 'SET NASI AYAM GEPUK RM26.00'). Set quantity to the leading number (2 in this example). Null if no quantity sub-line is printed.",
+          ),
+        unit_price_cents: z
+          .number()
+          .int()
+          .nonnegative()
+          .nullable()
+          .describe(
+            "Per-unit price in cents from the 'qty x unit_price' sub-line. For '2 x RM13.00', set this to 1300. Null when no sub-line exists. When set, quantity * unit_price_cents should approximately equal price_cents (within rounding).",
           ),
       }),
     )
     .describe(
-      "Each line-item with its price. Do NOT include subtotals, tax, service charge, rounding, or grand total here.",
+      "Each line-item with its price. Do NOT include subtotals, tax, service charge, rounding, or grand total here. When a Malaysian POS receipt shows the quantity-times-unit-price format ('2 x RM13.00' under the item), populate quantity AND unit_price_cents so the app can split per-unit; the line total still goes in price_cents.",
     ),
   subtotal_cents: z
     .number()
@@ -178,6 +195,7 @@ export async function scanReceipt(
                 "Critical: Malaysian receipts often show 'SUBTOTAL' that already includes SST/GST/service charge — never add tax twice. " +
                 "If 'CASH' and 'CHANGE' lines are both present, the total customer paid equals Cash - Change. Use that as a sanity check. " +
                 "Item names can be in English, Bahasa Malaysia, Chinese, or Tamil — preserve the original script. " +
+                "Stacked quantities: Malaysian POS receipts often print a sub-line under an item like '2 x RM13.00' below 'SET NASI AYAM GEPUK RM26.00'. When you see this, set quantity=2 and unit_price_cents=1300 on that item (the line total RM26.00 still goes in price_cents). This lets the app split per-unit so each diner claims what they ate. If no sub-line is shown, leave quantity and unit_price_cents null. " +
                 "If the receipt is unreadable, return empty items and zero total — do not invent items or amounts.",
             },
             { type: "file", data: bytes, mediaType: file.type },
@@ -190,7 +208,13 @@ export async function scanReceipt(
     // when the image is unreadable / not a receipt (rather than inventing
     // values). Catch that here so the UI doesn't show "✓ receipt math
     // reconciles" for what is actually "we saw nothing".
-    const items = expandQuantityLines(object.items);
+    //
+    // Two-stage expansion: first use the explicit quantity + unit_price
+    // fields Gemini extracts from "2 x RM13.00" sub-lines (Malaysian
+    // POS standard); then fall back to the legacy name-prefix parser
+    // for "10 NASI LEMAK" single-line formats. Both produce per-unit
+    // items so groupItemsByName can render a single grouped stepper row.
+    const items = expandQuantityLines(expandQuantityFields(object.items));
     const looksLikeReceipt =
       items.length > 0 ||
       object.total_cents > 0 ||
