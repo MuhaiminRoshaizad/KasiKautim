@@ -1,9 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 
 import { AmountDisplay } from "@/components/amount-display";
-import { buttonClassName } from "@/components/button";
 import { InkStamp } from "@/components/ink-stamp";
 import { ProgressBar } from "@/components/progress-bar";
 import { ReceiptCard, ReceiptDivider } from "@/components/receipt-card";
@@ -11,6 +9,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { APP_NAME } from "@/lib/constants";
 
 import { AmbientReceipts } from "./ambient-receipts";
+import { CreateBillCta } from "./landing-cta";
 
 export default function HomePage() {
   return (
@@ -46,16 +45,7 @@ export default function HomePage() {
           </p>
 
           <div className="mt-8">
-            <Link
-              href="/login"
-              className={buttonClassName({
-                size: "lg",
-                className: "font-display uppercase tracking-widest",
-              })}
-            >
-              Create a bill
-              <ArrowRight size={18} aria-hidden />
-            </Link>
+            <CreateBillCta />
           </div>
 
           <p className="mt-4 text-xs text-foreground-faint">
