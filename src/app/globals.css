@@ -222,7 +222,12 @@ body {
      print-color-adjust: exact tells the browser "this background IS
      load-bearing, print it even if 'Background graphics' is unchecked"
      — without it browsers strip background-color from PDFs by default
-     (Chrome / Firefox / Safari all behave this way). */
+     (Chrome / Firefox / Safari all behave this way).
+     The linear-gradient(black, black) on the fill is a defensive
+     duplicate of background-color: Safari and some Chrome versions
+     historically ignore print-color-adjust for solid background-color
+     but honour background-image gradients, so the gradient acts as a
+     belt to the background-color's braces. */
   [role="progressbar"],
   [role="progressbar"] > div {
     print-color-adjust: exact !important;
@@ -230,9 +235,11 @@ body {
   }
   [role="progressbar"] {
     background: white !important;
+    border: 1px solid black !important;
   }
   [role="progressbar"] > div {
-    background: black !important;
+    background-color: black !important;
+    background-image: linear-gradient(black, black) !important;
   }
 
   /* Toggle helper visibility for print. */
