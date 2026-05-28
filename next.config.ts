@@ -17,11 +17,18 @@ const SECURITY_HEADERS = [
     // inlined hydration script + Tailwind v4's inlined style attribute.
     // 'self' covers our own bundles, Supabase covers REST + Realtime,
     // googleusercontent covers organizer avatars rendered on /b/[slug].
+    // img-src has to spell out every image origin we hit at runtime
+    // because 'self' does NOT cover blob: or data: per the CSP3 spec.
+    //   - blob: needed for the recipient's preview thumbnail in
+    //     mark-paid-panel (URL.createObjectURL on the picked file)
+    //   - https://*.supabase.co needed for the organizer's payment-
+    //     proof thumbnails on /dashboard/[slug]/report (signed
+    //     Storage URLs minted server-side)
     // frame-ancestors 'none' is the modern replacement for X-Frame-Options
     // but we keep both for old-browser coverage.
     value: [
       "default-src 'self'",
-      "img-src 'self' data: https://lh3.googleusercontent.com https://*.googleusercontent.com",
+      "img-src 'self' data: blob: https://lh3.googleusercontent.com https://*.googleusercontent.com https://*.supabase.co",
       "script-src 'self' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline'",
       "font-src 'self' data:",
