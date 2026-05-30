@@ -156,7 +156,7 @@ Scoped out of this submission, documented so future readers know they're known. 
 
 - **Single device per claim** — claim_member binds a slot to the first device that taps the name. The tap-to-remove "Not you?" flow lets recipients escape that mistake, but if someone bookmarked a per-member URL on two devices, only the first device's payment is recorded against that slot.
 - **Switch name via "Not you?", not browser back** — tapping items in the picker fires a server action per tap (so co-claimers see updates live). Browser-back leaves those taps glued to the abandoned member row until someone uses the "Not you?" banner — which also clears the tapped items and refreshes everyone's share. The banner explicitly nudges first-time users toward this pattern.
-- **Per-member token in URL** — anyone with the `/b/[slug]?m=token` link IS that recipient. We don't gate it with a PIN or extra credential because adding friction kills the WhatsApp flow. If someone forwards their per-member link, the new holder can mark-paid as them.
+- **Per-member token in URL** — anyone with the `/b/[slug]?m=token` link IS that recipient. We don't gate it with a PIN or extra credential because adding friction kills the WhatsApp flow. If someone forwards their per-member link, the new holder can mark-paid as them. URL-borne bearer credentials are generally discouraged (browser history, screenshots, plaintext logs all retain them) — the trade-off is accepted because each token is per-member-per-bill and only scoped to a single low-stakes action (mark-paid).
 - **No account merging** — sign in with a different Google account and your bills are separate. We don't support transferring bills between accounts.
 
 ### Storage + retention
@@ -194,6 +194,7 @@ A pre-submission security audit landed before going public. The defensive contro
 - **HEIC photos may be rejected** if Vercel's Node runtime ships without `libheif` — the upload action now hard-rejects rather than silently falling back to raw bytes (which would have leaked EXIF on iPhone screenshots), so the failure mode is "ask for JPG/PNG" instead of a privacy regression.
 - **CSP allows `'unsafe-inline'` for script + style** — required by Next.js's inlined hydration script and Tailwind v4's inlined style attribute. A nonce-based CSP is the right next step but needs build-pipeline restructuring; deferred.
 - **Custom auth domain on Google consent screen** — would require Supabase Pro; deferred (also documented under Auth + onboarding above).
+- **Side-channel via `amount_owed_cents`** — every member token can read their own row's `amount_owed_cents`, which the trigger recomputes whenever any member toggles an item. A determined attacker holding one token could poll the value and infer when/which item-claim deltas land for other members on the same bill. Slow, noisy, and only reveals item-claim activity, not identities. Documented rather than gated.
 
 ## License
 

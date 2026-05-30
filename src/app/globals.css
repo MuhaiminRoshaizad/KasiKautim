@@ -47,7 +47,7 @@
   --paper-deep: #1a1814;
   --ink: #d6cfb8;          /* warm cream text, 12.4:1 on paper, AAA */
   --ink-soft: #9a9485;     /* secondary text, 5.9:1 on paper, AA+ */
-  --ink-faint: #857e6e;    /* tertiary text — lightened from #6b6658 for AA (4.6:1) */
+  --ink-faint: #8f8876;    /* tertiary text — lightened again to ~5.1:1 for AA safety margin */
   --ringgit: #6db77a;      /* paid / success, 7.5:1 AAA */
   --ringgit-soft: #1d2a20;
   --stamp: #e07262;        /* overdue / destructive, 5.3:1 AA */

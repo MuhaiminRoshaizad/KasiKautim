@@ -24,6 +24,17 @@ const REDACT_KEYS = new Set([
   "anon_key",
   "api_key",
   "apiKey",
+  // Payment audit fields — currently not logged anywhere, but
+  // conservative inclusion keeps a future logger.error({ row }) from
+  // accidentally leaking method / note / proof path to server logs.
+  "payment_method",
+  "paymentMethod",
+  "payment_note",
+  "paymentNote",
+  "payment_proof_url",
+  "paymentProofUrl",
+  "proof_url",
+  "proofUrl",
 ]);
 
 const IS_DEV = process.env.NODE_ENV !== "production";
