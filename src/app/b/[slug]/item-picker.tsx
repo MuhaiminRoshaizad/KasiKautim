@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useOptimistic, useState, useTransition } from "react";
 
 import { AmountDisplay } from "@/components/amount-display";
 import { ItemClaimPicker } from "@/components/item-claim-picker";
@@ -57,10 +57,27 @@ export function ItemPicker({
 }: ItemPickerProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
-  const [pendingItemIds, setPendingItemIds] = useState<Set<string>>(
-    () => new Set(),
-  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Optimistic mirror of members so the chip flips instantly on tap
+  // instead of waiting for the full Vercel -> Supabase Tokyo round-trip
+  // (~500-1200ms on mobile). React resets this to the `members` prop
+  // automatically when the transition completes, so server truth wins
+  // on conflict. Same pattern as the React docs' useOptimistic example.
+  const [optimisticMembers, applyOptimisticToggle] = useOptimistic(
+    members,
+    (state, op: { memberId: string; itemId: string }) =>
+      state.map((m) => {
+        if (m.id !== op.memberId) return m;
+        const has = m.claimedItemIds.includes(op.itemId);
+        return {
+          ...m,
+          claimedItemIds: has
+            ? m.claimedItemIds.filter((id) => id !== op.itemId)
+            : [...m.claimedItemIds, op.itemId],
+        };
+      }),
+  );
 
   // Realtime: any claim by anyone re-renders the picker via router.refresh().
   useEffect(() => {
@@ -83,10 +100,11 @@ export function ItemPicker({
     };
   }, [billId, router]);
 
-  const me = members.find((m) => m.id === meId);
+  const me = optimisticMembers.find((m) => m.id === meId);
 
-  // Compute live shares (mirrors what the DB will store post-claim).
-  const memberClaims: MemberClaim[] = members.map((m) => ({
+  // Compute live shares from the optimistic state so the share preview
+  // updates the same instant the chip does.
+  const memberClaims: MemberClaim[] = optimisticMembers.map((m) => ({
     memberId: m.id,
     claimedItemIds: m.claimedItemIds,
   }));
@@ -96,26 +114,24 @@ export function ItemPicker({
   const handleToggle = (itemId: string) => {
     if (me?.paid) return;
     setErrorMessage(null);
-    setPendingItemIds((s) => new Set(s).add(itemId));
 
     const fd = new FormData();
     fd.append("token", token);
     fd.append("itemId", itemId);
 
     startTransition(async () => {
+      // Flip the chip immediately. If the server rejects, the transition
+      // ends without router.refresh() picking up a new state and React
+      // snaps the optimistic value back to `members` on its own.
+      applyOptimisticToggle({ memberId: meId, itemId });
       const result = await toggleItemClaim(INITIAL, fd);
-      setPendingItemIds((s) => {
-        const next = new Set(s);
-        next.delete(itemId);
-        return next;
-      });
       if (!result.ok) {
         setErrorMessage(result.message);
-      } else {
-        // Local recompute is instant via Realtime, but kick a refresh too
-        // in case the channel hasn't echoed yet.
-        router.refresh();
+        return;
       }
+      // Realtime usually echoes back first, but kick a refresh too so
+      // the canonical server state lands even if the channel is slow.
+      router.refresh();
     });
   };
 
@@ -138,11 +154,10 @@ export function ItemPicker({
 
       <ItemClaimPicker
         items={items}
-        members={members}
+        members={optimisticMembers}
         meId={meId}
         onToggle={handleToggle}
         disabled={me.paid}
-        pendingItemIds={pendingItemIds}
       />
 
       {errorMessage ? (
