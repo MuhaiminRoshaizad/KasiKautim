@@ -136,8 +136,14 @@ async function ClaimView({ slug, bill }: { slug: string; bill: PublicBillRpc }) 
       <ReceiptDivider label="Pick your name" />
 
       {claimables.length === 0 ? (
+        // createBill rejects 0 members, so an empty claimables list at
+        // this point means every recipient slot has been claimed (or
+        // claimed-and-paid) by someone. Tell the user that, not "no
+        // members yet" - that message only made sense as an
+        // impossible-by-construction guard.
         <p className="text-sm text-foreground-soft">
-          No members on this bill yet.
+          Every name on this bill has already been claimed. Ask the
+          tukang bayar if you think your name was missed.
         </p>
       ) : (
         <ul className="space-y-2">
