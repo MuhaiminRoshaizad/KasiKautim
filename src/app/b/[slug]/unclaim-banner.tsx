@@ -38,15 +38,25 @@ export function UnclaimBanner({ slug, token, name, paid }: UnclaimBannerProps) {
   }
 
   return (
-    <form action={formAction} className="mb-4 flex items-center justify-between gap-2">
+    <form
+      action={formAction}
+      className="mb-4 flex flex-col gap-1 border-l-2 border-border bg-surface/50 px-3 py-2"
+    >
       <input type="hidden" name="slug" value={slug} />
       <input type="hidden" name="token" value={token} />
-      <p className="text-[11px] text-foreground-soft">
-        You&apos;re <span className="font-medium text-foreground">{name}</span>.
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[11px] text-foreground-soft">
+          You&apos;re <span className="font-medium text-foreground">{name}</span>.
+        </p>
+        <UnclaimButton />
+      </div>
+      <p className="text-[10px] text-foreground-faint">
+        Wrong name? Tap{" "}
+        <span className="font-medium text-foreground-soft">Not you?</span>{" "}
+        — don&apos;t hit back, your taps stay stuck otherwise.
       </p>
-      <UnclaimButton />
       {state.ok === false ? (
-        <p role="alert" className="basis-full text-[11px] text-stamp">
+        <p role="alert" className="text-[11px] text-stamp">
           {state.message}
         </p>
       ) : null}
