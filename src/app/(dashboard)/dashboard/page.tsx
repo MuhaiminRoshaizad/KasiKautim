@@ -77,7 +77,10 @@ export default async function DashboardPage() {
           const paidMembers = members.filter((m) => m.paid);
           const collected = sumCents(paidMembers.map((m) => m.amount_owed_cents));
           return (
-            <li key={b.id}>
+            // min-w-0 is load-bearing — grid items default to min-width:auto
+            // (= intrinsic content width), which overrides the `truncate` on
+            // the title and lets the card overflow the viewport horizontally.
+            <li key={b.id} className="min-w-0">
               <BillProgressCard
                 slug={b.slug}
                 title={b.title}

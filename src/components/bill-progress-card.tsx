@@ -41,17 +41,18 @@ export function BillProgressCard({
     >
       <ReceiptCard className="p-5 sm:p-6">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-foreground-faint">
-              <span>{slug}</span>
-              {dueDate ? (
-                <>
-                  <span aria-hidden>·</span>
-                  <span>Due {dueDate}</span>
-                </>
-              ) : null}
-            </div>
-            <h2 className="mt-1 truncate font-display text-2xl uppercase tracking-tight text-foreground">
+          <div className="min-w-0 flex-1">
+            {dueDate ? (
+              <div className="font-mono text-[10px] uppercase tracking-widest text-foreground-faint">
+                Due {dueDate}
+              </div>
+            ) : null}
+            <h2
+              className={cn(
+                "truncate font-display text-2xl uppercase tracking-tight text-foreground",
+                dueDate ? "mt-1" : "",
+              )}
+            >
               {title}
             </h2>
           </div>
