@@ -29,6 +29,21 @@ export default function manifest(): MetadataRoute.Manifest {
         type: "image/png",
       },
       {
+        // Android launcher picks 192x192 on most mdpi/hdpi devices.
+        src: "/api/icon/192",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        // 512x512 covers xxxhdpi Android + the install prompt preview
+        // and the splash screen on PWA-launched apps.
+        src: "/api/icon/512",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
         src: "/apple-icon",
         sizes: "180x180",
         type: "image/png",
