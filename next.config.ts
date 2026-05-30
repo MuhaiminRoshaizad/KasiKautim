@@ -63,6 +63,17 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // Next 15 default is 1 MB, which rejects modern phone camera photos
+    // (4–5 MB landscape JPEGs are common from iPhones) at the network
+    // layer BEFORE our server actions can return a graceful error. The
+    // request becomes an unhandled throw and surfaces as the global
+    // error.tsx page. Bumped to match our server-side MAX_BYTES ceiling
+    // (5 MB) plus FormData overhead.
+    serverActions: {
+      bodySizeLimit: "8mb",
+    },
+  },
   async headers() {
     return [
       {

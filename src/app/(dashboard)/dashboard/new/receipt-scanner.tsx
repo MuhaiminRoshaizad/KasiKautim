@@ -17,6 +17,7 @@ import {
 import { AmountDisplay } from "@/components/amount-display";
 import { ReceiptDivider } from "@/components/receipt-card";
 import { cn } from "@/lib/cn";
+import { compressImage } from "@/lib/compress-image";
 import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { fromCents, toCents } from "@/lib/money";
 import {
@@ -60,9 +61,12 @@ export function ReceiptScanner({ onScanned }: ReceiptScannerProps) {
 
   const handleFile = (file: File) => {
     setState(INITIAL);
-    const fd = new FormData();
-    fd.append("image", file);
     startTransition(async () => {
+      // Compress on the client so a 5 MB landscape phone shot doesn't
+      // exceed the server-action body limit before the action runs.
+      const ready = await compressImage(file);
+      const fd = new FormData();
+      fd.append("image", ready);
       const result = await scanReceipt(INITIAL, fd);
       setState(result);
       if (result.ok && result.receipt) {
