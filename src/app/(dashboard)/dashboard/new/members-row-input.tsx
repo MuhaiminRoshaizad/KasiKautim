@@ -117,7 +117,10 @@ export function MembersRowInput({
           return (
             <li
               key={i}
-              className="flex items-center gap-2 font-mono text-sm"
+              // text-base (16px) is the iOS Safari auto-zoom threshold;
+              // text-sm (14px) would trigger zoom-on-focus and never
+              // zoom back out.
+              className="flex items-center gap-2 font-mono text-base"
             >
               <span
                 aria-hidden
@@ -133,17 +136,22 @@ export function MembersRowInput({
                 value={row.name}
                 onChange={(e) => {
                   if (isTrailing && e.target.value.trim() !== "") {
-                    // Adding the trailing row to the persisted list.
+                    // Adding the trailing row to the persisted list -
+                    // gate on the cap so the trailing input can't
+                    // bypass the disabled "Add a row" button.
+                    if (rows.length >= LIMITS.memberCount) return;
                     const persisted = [...rows, { name: e.target.value, amount: "" }];
                     onChange(serialize(persisted));
                   } else {
                     updateRow(i, { name: e.target.value });
                   }
                 }}
-                disabled={disabled}
+                disabled={
+                  disabled || (isTrailing && rows.length >= LIMITS.memberCount)
+                }
                 maxLength={LIMITS.memberName}
                 placeholder={isTrailing ? "Add a name..." : "Name"}
-                className="min-w-0 flex-1 border border-transparent bg-paper px-2 py-1.5 text-foreground placeholder:text-foreground-faint hover:border-border focus:border-foreground focus:outline-none"
+                className="min-w-0 flex-1 border border-transparent bg-paper px-2 py-1.5 text-foreground placeholder:text-foreground-faint hover:border-border focus:border-foreground focus:outline-none disabled:bg-transparent"
                 aria-label={`Member ${i + 1} name`}
               />
               {showAmount ? (
@@ -175,15 +183,22 @@ export function MembersRowInput({
         })}
       </ul>
 
-      <button
-        type="button"
-        onClick={addRow}
-        disabled={disabled || rows.length >= LIMITS.memberCount}
-        className="mt-2 inline-flex items-center gap-1 self-start px-2 py-1 text-[11px] font-medium uppercase tracking-widest text-foreground-soft hover:text-foreground disabled:opacity-40"
-      >
-        <Plus size={12} aria-hidden />
-        Add a row
-      </button>
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={addRow}
+          disabled={disabled || rows.length >= LIMITS.memberCount}
+          className="inline-flex items-center gap-1 self-start px-2 py-1 text-[11px] font-medium uppercase tracking-widest text-foreground-soft hover:text-foreground disabled:opacity-40"
+        >
+          <Plus size={12} aria-hidden />
+          Add a row
+        </button>
+        {rows.length >= LIMITS.memberCount ? (
+          <span className="text-[10px] uppercase tracking-widest text-stamp">
+            Max {LIMITS.memberCount} reached
+          </span>
+        ) : null}
+      </div>
     </div>
   );
 }
