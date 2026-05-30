@@ -39,7 +39,7 @@ const ReceiptSchema = z.object({
           .int()
           .nonnegative()
           .describe(
-            "LINE TOTAL for this item in cents (RM 12.50 -> 1250). This is the printed amount on the right of the line, NOT the unit price. For a 'SET NASI AYAM GEPUK RM26.00 / 2 x RM13.00' line, price_cents is 2600 and the unit price goes in unit_price_cents below.",
+            "LINE TOTAL for this item in cents (RM 12.50 -> 1250). The printed amount in the rightmost / total column, NOT the unit price. For a 'SET NASI AYAM GEPUK RM26.00 / 2 x RM13.00' line, price_cents is 2600 (the line total). For a column-aligned 'NASI GORENG PATTAYA  8.00  3  24.00' line, price_cents is 2400 (the rightmost total column).",
           ),
         quantity: z
           .number()
@@ -48,7 +48,7 @@ const ReceiptSchema = z.object({
           .max(99)
           .nullable()
           .describe(
-            "Quantity ordered when the receipt shows a 'qty x unit_price' sub-line under or beside the item (e.g. '2 x RM13.00' below 'SET NASI AYAM GEPUK RM26.00'). Set quantity to the leading number (2 in this example). Null if no quantity sub-line is printed.",
+            "Quantity ordered. Two common Malaysian POS formats; populate this whenever you can see a quantity for the item: (A) sub-line format: '2 x RM13.00' printed UNDER or BESIDE the item — set quantity to 2. (B) column format: receipt has columns like 'Item | Price | Qty | Total' where the same line reads 'NASI GORENG PATTAYA  8.00  3  24.00' — set quantity to 3 (the middle qty column). Null if no quantity is shown anywhere for the item.",
           ),
         unit_price_cents: z
           .number()
@@ -56,12 +56,12 @@ const ReceiptSchema = z.object({
           .nonnegative()
           .nullable()
           .describe(
-            "Per-unit price in cents from the 'qty x unit_price' sub-line. For '2 x RM13.00', set this to 1300. Null when no sub-line exists. When set, quantity * unit_price_cents should approximately equal price_cents (within rounding).",
+            "Per-unit price in cents. (A) Sub-line format '2 x RM13.00' -> set 1300. (B) Column format 'NASI GORENG PATTAYA  8.00  3  24.00' -> set 800 (the unit-price column, NOT the line total). Null when quantity is null. When set, quantity * unit_price_cents should approximately equal price_cents (within a few cents for rounding).",
           ),
       }),
     )
     .describe(
-      "Each line-item with its price. Do NOT include subtotals, tax, service charge, rounding, or grand total here. When a Malaysian POS receipt shows the quantity-times-unit-price format ('2 x RM13.00' under the item), populate quantity AND unit_price_cents so the app can split per-unit; the line total still goes in price_cents.",
+      "Each line-item with its price. Do NOT include subtotals, tax, service charge, rounding, or grand total here. When the receipt exposes both a unit price AND a quantity for an item — in EITHER the sub-line format ('2 x RM13.00') OR the column format ('Item | Unit | Qty | Total') — populate quantity AND unit_price_cents so the app can split per-unit. price_cents always carries the LINE TOTAL regardless of format.",
     ),
   subtotal_cents: z
     .number()
@@ -195,7 +195,10 @@ export async function scanReceipt(
                 "Critical: Malaysian receipts often show 'SUBTOTAL' that already includes SST/GST/service charge — never add tax twice. " +
                 "If 'CASH' and 'CHANGE' lines are both present, the total customer paid equals Cash - Change. Use that as a sanity check. " +
                 "Item names can be in English, Bahasa Malaysia, Chinese, or Tamil — preserve the original script. " +
-                "Stacked quantities: Malaysian POS receipts often print a sub-line under an item like '2 x RM13.00' below 'SET NASI AYAM GEPUK RM26.00'. When you see this, set quantity=2 and unit_price_cents=1300 on that item (the line total RM26.00 still goes in price_cents). This lets the app split per-unit so each diner claims what they ate. If no sub-line is shown, leave quantity and unit_price_cents null. " +
+                "Stacked quantities come in TWO common Malaysian POS formats — handle BOTH: " +
+                "(A) Sub-line format: '2 x RM13.00' printed UNDER or BESIDE the item (e.g. '2 x RM13.00' below 'SET NASI AYAM GEPUK RM26.00'). " +
+                "(B) Column format: the receipt header reads 'Item Price | Qty | Total(RM)' and the line spans columns like 'NASI GORENG PATTAYA  8.00  3  24.00' (unit RM 8.00, qty 3, line total RM 24.00). " +
+                "In BOTH cases set quantity=N and unit_price_cents=<unit in cents>, keeping price_cents as the LINE TOTAL. Verify quantity * unit_price_cents ≈ price_cents (within a few cents for rounding). If only the line total is shown with no qty/unit breakdown, leave quantity and unit_price_cents null. " +
                 "If the receipt is unreadable, return empty items and zero total — do not invent items or amounts.",
             },
             { type: "file", data: bytes, mediaType: file.type },
