@@ -59,12 +59,17 @@ export default async function DashboardPage() {
         <h1 className="font-display text-3xl uppercase tracking-tight text-foreground">
           Your bills
         </h1>
+        {/* Desktop: top-right inline CTA. Mobile: hidden in favour of
+            the FAB at bottom-right (thumb-reachable on big phones). */}
         <Link
           href="/dashboard/new"
-          className={buttonClassName({
-            size: "md",
-            className: "font-display uppercase tracking-widest",
-          })}
+          className={cn(
+            buttonClassName({
+              size: "md",
+              className: "font-display uppercase tracking-widest",
+            }),
+            "hidden sm:inline-flex",
+          )}
         >
           <Plus size={16} aria-hidden />
           New bill
@@ -94,7 +99,36 @@ export default async function DashboardPage() {
           );
         })}
       </ul>
+
+      <NewBillFab />
     </div>
+  );
+}
+
+/*
+ * Mobile-only floating action button. Top-right inline button stays on
+ * sm+ where mouse reach makes it the better target; on phone widths
+ * the FAB sits within thumb reach in the bottom-right and respects
+ * the iOS home-indicator safe area.
+ */
+function NewBillFab() {
+  return (
+    <Link
+      href="/dashboard/new"
+      aria-label="Create new bill"
+      className={cn(
+        "fixed right-5 z-30 inline-flex h-14 w-14 items-center justify-center rounded-full",
+        "bg-ringgit text-paper shadow-[0_8px_24px_-8px_rgba(0,0,0,0.45)]",
+        "transition-transform active:scale-95",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ringgit focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "sm:hidden",
+        // env(safe-area-inset-bottom) keeps the FAB clear of the iOS
+        // home indicator on phones without a hardware home button.
+        "bottom-[calc(1.25rem+env(safe-area-inset-bottom))]",
+      )}
+    >
+      <Plus size={24} aria-hidden strokeWidth={2.5} />
+    </Link>
   );
 }
 
