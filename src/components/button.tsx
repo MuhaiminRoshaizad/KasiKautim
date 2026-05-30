@@ -45,7 +45,10 @@ export function buttonClassName({
 } = {}): string {
   return cn(
     "inline-flex items-center justify-center gap-2 font-medium tracking-tight",
-    "transition-colors duration-150 ease-out",
+    "transition-[color,background-color,border-color,transform] duration-150 ease-out",
+    // Native-app press feedback. Scales slightly on touch / mouse-down
+    // and snaps back on release. Cheap to read on every interaction.
+    "active:scale-[0.97] disabled:active:scale-100",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
     "disabled:opacity-50 disabled:cursor-not-allowed",
     "rounded-sm shadow-[0_1px_0_rgba(0,0,0,0.04)]",

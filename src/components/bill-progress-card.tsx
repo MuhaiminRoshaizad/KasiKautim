@@ -34,6 +34,8 @@ export function BillProgressCard({
       href={`/dashboard/${slug}`}
       className={cn(
         "group block focus-visible:outline-none",
+        // Native-app press feedback on the whole tile.
+        "transition-transform duration-150 ease-out active:scale-[0.98]",
         "[&>*]:transition-shadow [&>*]:duration-150",
         "focus-visible:[&>*]:ring-2 focus-visible:[&>*]:ring-foreground",
         "hover:[&>*]:shadow-[0_2px_0_rgba(0,0,0,0.04),0_18px_28px_-12px_rgba(0,0,0,0.22)]",
