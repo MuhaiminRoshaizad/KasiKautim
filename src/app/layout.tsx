@@ -68,6 +68,18 @@ export default function RootLayout({
         <ThemeBootstrap />
       </head>
       <body className="min-h-dvh bg-background text-foreground antialiased">
+        {/*
+         * WCAG 2.4.1 — keyboard-only users can jump past the header
+         * nav to the page's main landmark. Visually hidden until
+         * focused, at which point it pops to the top-left of every
+         * route as a styled chip. Pages add id="main" to their <main>.
+         */}
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:border focus:border-foreground focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-lg"
+        >
+          Skip to content
+        </a>
         {children}
         <Toaster
           position="top-center"

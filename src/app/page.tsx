@@ -15,7 +15,7 @@ export default function HomePage() {
   return (
     <>
       <AmbientReceipts />
-      <main className="relative z-10 mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-6 pt-6 pb-12 sm:px-8">
+      <main id="main" className="relative z-10 mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-6 pt-6 pb-[calc(3rem+env(safe-area-inset-bottom))] sm:px-8">
       <header className="flex items-center justify-between">
         <Link
           href="/"

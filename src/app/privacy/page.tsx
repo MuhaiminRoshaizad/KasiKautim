@@ -16,7 +16,7 @@ const CONTACT_EMAIL = "aminmuhaimin192@gmail.com";
 
 export default function PrivacyPage() {
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col px-6 pt-6 pb-12 sm:px-8">
+    <main id="main" className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col px-6 pt-6 pb-[calc(3rem+env(safe-area-inset-bottom))] sm:px-8">
       <header className="flex items-center justify-between gap-2">
         <Link
           href="/"
