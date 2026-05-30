@@ -24,7 +24,7 @@ KasiKautim replaces step 2–4 with **one link** dropped into the group chat. Re
 
 ## What it does
 
-- **AI receipt scanner** — snap a photo of the receipt, Gemini extracts items + tax + total. Edit before saving.
+- **AI receipt scanner** — snap a photo of the receipt, Gemini extracts items + tax + total. Edit before saving. Handles both Malaysian POS formats: sub-line (`2 x RM13.00` under the item) and column-aligned (`Item | Unit | Qty | Total`). Photos are client-side compressed before upload so multi-MB phone shots don't hit body limits.
 - **Equal split or by-items** — equal-split for makan, item-claim for "I only had teh tarik, not the seafood platter".
 - **Tukang bayar is also a diner** — opt-in checkbox at bill creation auto-adds the organizer as a paid member with their own claimed items, so the math accounts for "I ate too" without anyone having to chase themselves.
 - **Stacked quantity stepper** — receipts with lines like "3 Teh Tarik RM 9.00" collapse into a single "Teh Tarik ×3" row with a [−] [+] stepper so each recipient picks how many they actually ate.
@@ -113,7 +113,11 @@ Light mode is receipt paper. Dark mode is thermal-printer carbon copy.
 - **Money as integer cents** everywhere. `parseFloat` is banned for money. Schema is `bigint` in Postgres.
 - **RLS is the source of truth for access control**, not route-level checks. Anonymous `/b/[slug]` reads go through a `get_public_bill` RPC; organizer reads are RLS-scoped to `auth.uid()`.
 - **Member token = nanoid(16)** ≈ 96 bits of entropy. Treated as a bearer credential. Never logged.
-- **Item-claim math**: `share = floor(price / claimer_count)`; first claimer (by sorted memberId) absorbs the remainder. Tax allocates proportional to subtotal.
+- **Money rounding** is deterministic and conserves the total:
+  - Equal split: `floor(total / count)` per slot, last slot absorbs the remainder. RM 80 / 3 → 26.66 / 26.67 / 26.67, sums to 80.00 exactly.
+  - Item shares (per item): `floor(item_price / claimer_count)`, first claimer (by sorted memberId) absorbs the cents remainder. RM 7.00 shared three ways → 2.34 / 2.33 / 2.33.
+  - Tax + discount allocation: proportional to each member's subtotal. Up to `(N-1)` cents may differ from the receipt's exact figure — accepted because Malaysian receipts already round to 5 sen, and a deterministic allocation is more debuggable than a fancy remainder-distribution scheme.
+  - Organizer in equal-mode absorbs any odd cent since `splitEqually` places them in the last slot.
 - **Slug collision retry** wrapped in `src/lib/slugs.ts`.
 - **Idempotent mark-paid** (`UPDATE ... WHERE paid = false`).
 - **EXIF stripped** from payment proofs via `sharp` before Storage upload.
@@ -151,6 +155,7 @@ Scoped out of this submission, documented so future readers know they're known. 
 ### Identity + linking
 
 - **Single device per claim** — claim_member binds a slot to the first device that taps the name. The tap-to-remove "Not you?" flow lets recipients escape that mistake, but if someone bookmarked a per-member URL on two devices, only the first device's payment is recorded against that slot.
+- **Switch name via "Not you?", not browser back** — tapping items in the picker fires a server action per tap (so co-claimers see updates live). Browser-back leaves those taps glued to the abandoned member row until someone uses the "Not you?" banner — which also clears the tapped items and refreshes everyone's share. The banner explicitly nudges first-time users toward this pattern.
 - **Per-member token in URL** — anyone with the `/b/[slug]?m=token` link IS that recipient. We don't gate it with a PIN or extra credential because adding friction kills the WhatsApp flow. If someone forwards their per-member link, the new holder can mark-paid as them.
 - **No account merging** — sign in with a different Google account and your bills are separate. We don't support transferring bills between accounts.
 
