@@ -144,10 +144,26 @@ function OgFrame({ payload }: { payload: OgPayload | null }) {
         >
           Bill from {payload.organizer}
         </div>
+        {/*
+         * Title overflow guard: long merchant names (e.g. "RESTORAN ABANG
+         * BOMBA BAWAL GORENG", 32 chars) wrapped to 2 lines at 78px and
+         * collided with the TOTAL row below. Auto-shrink + 2-line clamp
+         * keeps the title pinned within its allotted height regardless of
+         * length. Satori supports WebkitLineClamp via the -webkit-box
+         * display model (same as CSS line-clamp).
+         */}
         <div
           style={{
-            display: "flex",
-            fontSize: 78,
+            display: "-webkit-box",
+            WebkitBoxOrient: "vertical",
+            WebkitLineClamp: 2,
+            overflow: "hidden",
+            fontSize:
+              payload.title.length > 40
+                ? 56
+                : payload.title.length > 28
+                  ? 64
+                  : 78,
             fontWeight: 900,
             lineHeight: 1.05,
             marginTop: 12,
