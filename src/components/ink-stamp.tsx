@@ -23,7 +23,7 @@ export function InkStamp({
   return (
     <span
       className={cn(
-        "inline-block select-none border-2 px-3 py-1",
+        "inline-block select-none border-[1.5px] px-3 py-1",
         "font-display text-lg uppercase tracking-[0.18em]",
         "opacity-90",
         variants[variant],

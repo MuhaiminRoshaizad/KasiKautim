@@ -26,7 +26,7 @@ import { ReceiptScanner, type ScannerApplyPayload } from "./receipt-scanner";
 const ME_PLACEHOLDER_ID = "__me__";
 
 const FIELD_INPUT =
-  "h-12 w-full border border-border bg-surface px-3 font-sans text-base text-foreground placeholder:text-foreground-faint focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 focus:ring-offset-background";
+  "h-12 w-full rounded-lg border border-border bg-surface px-3 font-sans text-base text-foreground placeholder:text-foreground-faint focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 focus:ring-offset-background";
 
 const PRICE_PATTERN = /^\d*(\.\d{0,2})?$/;
 

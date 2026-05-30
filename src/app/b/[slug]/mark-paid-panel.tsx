@@ -40,7 +40,7 @@ const METHOD_OPTIONS: { value: PaymentMethod | ""; label: string }[] = [
 ];
 
 const FIELD =
-  "h-11 w-full border border-border bg-surface px-3 font-sans text-sm text-foreground placeholder:text-foreground-faint focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 focus:ring-offset-background";
+  "h-11 w-full rounded-lg border border-border bg-surface px-3 font-sans text-sm text-foreground placeholder:text-foreground-faint focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 focus:ring-offset-background";
 
 export function MarkPaidPanel({
   token,

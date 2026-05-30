@@ -52,7 +52,7 @@ export function CopyButton({
       aria-label={ariaLabel ?? `Copy ${label.toLowerCase()}`}
       className={cn(
         "inline-flex items-center justify-center border border-border bg-surface font-medium tracking-tight text-foreground",
-        "transition-colors hover:bg-surface-deep",
+        "transition-[color,background-color,transform] duration-150 hover:bg-surface-deep active:scale-[0.97]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         SIZES[size],
         copied && "border-ringgit text-ringgit",

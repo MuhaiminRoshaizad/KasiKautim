@@ -328,7 +328,7 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
                           variant: "secondary",
                           size: "sm",
                         }),
-                        "!h-11 whitespace-nowrap sm:!h-9",
+                        "!h-11 whitespace-nowrap transition-transform active:scale-[0.97] sm:!h-9",
                       )}
                     >
                       <Send size={14} aria-hidden />
