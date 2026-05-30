@@ -8,6 +8,7 @@ import { AmountDisplay } from "@/components/amount-display";
 import { Button, buttonClassName } from "@/components/button";
 import { InkStamp } from "@/components/ink-stamp";
 import { cn } from "@/lib/cn";
+import { compressImage } from "@/lib/compress-image";
 import { markPaid, type MarkPaidState } from "@/actions/members";
 import {
   uploadProof,
@@ -50,19 +51,20 @@ export function MarkPaidPanel({
   amountOwedCents = 0,
 }: MarkPaidPanelProps) {
   const [state, formAction, pending] = useActionState(markPaid, INITIAL_PAID);
+  const [submitting, startSubmit] = useTransition();
   const reduced = useReducedMotion();
 
   const paid = initiallyPaid || state.ok === true;
   const paidAt = state.paidAt ?? initialPaidAt;
+  const inFlight = pending || submitting;
 
   // Confirmation dialog state — guards the irreversible "marked paid" RPC
-  // call against fat-finger taps. Opens on "I've paid" click; only the
-  // Confirm button inside actually submits the form. Derived `dialogOpen`
-  // auto-closes while the action is in flight so the user sees the form's
-  // "Confirming..." button state and isn't stuck behind a modal.
+  // call against fat-finger taps. Opens on "I've paid" click; auto-closes
+  // while the action is in flight so the user sees the in-form pending
+  // state instead of being stuck behind a modal.
   const confirmRef = useRef<HTMLDialogElement>(null);
   const [confirmRequested, setConfirmRequested] = useState(false);
-  const dialogOpen = confirmRequested && !pending;
+  const dialogOpen = confirmRequested && !inFlight;
   useEffect(() => {
     const d = confirmRef.current;
     if (!d) return;
@@ -95,10 +97,13 @@ export function MarkPaidPanel({
     setProofPath(null);
     setProofState(INITIAL_UPLOAD);
 
-    const fd = new FormData();
-    fd.append("token", token);
-    fd.append("image", file);
     startUpload(async () => {
+      // Compress client-side so multi-MB phone screenshots fit under
+      // the server-action body limit + sharp's per-pixel decode cap.
+      const ready = await compressImage(file);
+      const fd = new FormData();
+      fd.append("token", token);
+      fd.append("image", ready);
       const result = await uploadProof(INITIAL_UPLOAD, fd);
       setProofState(result);
       if (result.ok && result.proofPath) setProofPath(result.proofPath);
@@ -139,14 +144,23 @@ export function MarkPaidPanel({
     );
   }
 
-  return (
-    <form action={formAction} className="flex flex-col gap-3">
-      <input type="hidden" name="token" value={token} />
-      {/* Hidden inputs carry the controlled state into the action FormData. */}
-      <input type="hidden" name="method" value={method} />
-      <input type="hidden" name="note" value={note} />
-      <input type="hidden" name="proofPath" value={proofPath ?? ""} />
+  // Bypass the form's native action mechanism and call markPaid directly
+  // with manually-built FormData. Symptom in prod: rows paid through this
+  // panel landed with payment_method=NULL even when the user picked a
+  // method (proofPath made it through, but controlled select/input state
+  // didn't). Going direct sidesteps any controlled-input + native-dialog
+  // top-layer quirk and guarantees the live state hits the action.
+  const handleConfirm = () => {
+    const fd = new FormData();
+    fd.append("token", token);
+    fd.append("method", method);
+    fd.append("note", note);
+    fd.append("proofPath", proofPath ?? "");
+    startSubmit(() => formAction(fd));
+  };
 
+  return (
+    <div className="flex flex-col gap-3">
       <label className="flex flex-col gap-1.5">
         <span className="text-[11px] font-medium uppercase tracking-widest text-foreground-soft">
           Payment method (optional)
@@ -154,7 +168,7 @@ export function MarkPaidPanel({
         <select
           value={method}
           onChange={(e) => setMethod(e.target.value as PaymentMethod | "")}
-          disabled={pending || !canPay}
+          disabled={inFlight || !canPay}
           className={FIELD}
           aria-label="Payment method"
         >
@@ -174,7 +188,7 @@ export function MarkPaidPanel({
           type="text"
           value={note}
           onChange={(e) => setNote(e.target.value.slice(0, 120))}
-          disabled={pending || !canPay}
+          disabled={inFlight || !canPay}
           maxLength={120}
           placeholder="e.g. DuitNow ref ABC123"
           className={FIELD}
@@ -182,7 +196,7 @@ export function MarkPaidPanel({
       </label>
 
       <ProofPicker
-        canPick={!pending && canPay}
+        canPick={!inFlight && canPay}
         previewUrl={proofPreviewUrl}
         proofPath={proofPath}
         isUploading={isUploading}
@@ -195,11 +209,11 @@ export function MarkPaidPanel({
       <Button
         type="button"
         onClick={() => setConfirmRequested(true)}
-        disabled={pending || !canPay || isUploading}
+        disabled={inFlight || !canPay || isUploading}
         size="lg"
         className="w-full font-display uppercase tracking-widest"
       >
-        {pending ? "Confirming..." : isUploading ? "Uploading proof..." : "I've paid"}
+        {inFlight ? "Confirming..." : isUploading ? "Uploading proof..." : "I've paid"}
       </Button>
       {state.ok === false ? (
         <p role="alert" className="text-center text-sm text-stamp">
@@ -218,10 +232,11 @@ export function MarkPaidPanel({
         method={method}
         note={note}
         proofAttached={Boolean(proofPath)}
-        pending={pending}
+        pending={inFlight}
+        onConfirm={handleConfirm}
         onCancel={() => setConfirmRequested(false)}
       />
-    </form>
+    </div>
   );
 }
 
@@ -232,6 +247,7 @@ interface ConfirmPaidDialogProps {
   note: string;
   proofAttached: boolean;
   pending: boolean;
+  onConfirm: () => void;
   onCancel: () => void;
 }
 
@@ -242,6 +258,7 @@ function ConfirmPaidDialog({
   note,
   proofAttached,
   pending,
+  onConfirm,
   onCancel,
 }: ConfirmPaidDialogProps) {
   const methodLabel =
@@ -317,7 +334,8 @@ function ConfirmPaidDialog({
             Cancel
           </button>
           <button
-            type="submit"
+            type="button"
+            onClick={onConfirm}
             disabled={pending}
             className={buttonClassName({
               size: "md",
