@@ -10,8 +10,8 @@ export default function DashboardLoading() {
       </div>
       <ul className="grid gap-4 sm:grid-cols-2">
         {Array.from({ length: 2 }).map((_, i) => (
-          <li key={i}>
-            <ReceiptCard className="p-5">
+          <li key={i} className="min-w-0">
+            <ReceiptCard flat className="p-5">
               <Skeleton className="h-3 w-16" />
               <Skeleton className="mt-3 h-6 w-3/4" />
               <Skeleton className="mt-4 h-3 w-1/2" />

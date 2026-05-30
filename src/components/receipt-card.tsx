@@ -8,15 +8,26 @@ interface ReceiptCardProps extends HTMLAttributes<HTMLDivElement> {
   torn?: boolean;
   /** Use the kopitiam-tissue brown background instead of paper white. */
   tissue?: boolean;
+  /**
+   * Flat tile variant for in-list cards (dashboard, repeating grids).
+   * Drops the torn-bottom mask, rounds corners, and softens the shadow
+   * so a list of cards reads as an app tile stack instead of a stack
+   * of overlapping paper receipts. Use the default (torn + sharp) for
+   * standalone hero cards on bill detail / public / report pages
+   * where the receipt aesthetic carries the page.
+   */
+  flat?: boolean;
 }
 
 export function ReceiptCard({
   children,
   torn = true,
   tissue = false,
+  flat = false,
   className,
   ...rest
 }: ReceiptCardProps) {
+  const showTorn = torn && !flat;
   return (
     <div
       className={cn(
@@ -27,10 +38,14 @@ export function ReceiptCard({
         // Slightly off-white paper, soft drop-shadow imitating receipt curl.
         tissue ? "bg-tissue" : "bg-surface",
         "border border-border",
-        "shadow-[0_2px_0_rgba(0,0,0,0.04),0_12px_24px_-12px_rgba(0,0,0,0.18)]",
-        // Subtle paper grain via the utility from globals.css.
-        "paper-grain",
-        torn ? "torn-bottom pb-6" : "",
+        flat
+          ? "rounded-xl shadow-[0_1px_0_rgba(0,0,0,0.03),0_6px_14px_-10px_rgba(0,0,0,0.16)]"
+          : "shadow-[0_2px_0_rgba(0,0,0,0.04),0_12px_24px_-12px_rgba(0,0,0,0.18)]",
+        // Subtle paper grain via the utility from globals.css. Skip on
+        // flat tiles - grain reads as receipt texture and we want these
+        // to look like app surfaces.
+        flat ? "" : "paper-grain",
+        showTorn ? "torn-bottom pb-6" : "",
         className,
       )}
       {...rest}

@@ -39,7 +39,7 @@ export function BillProgressCard({
         "hover:[&>*]:shadow-[0_2px_0_rgba(0,0,0,0.04),0_18px_28px_-12px_rgba(0,0,0,0.22)]",
       )}
     >
-      <ReceiptCard className="p-5 sm:p-6">
+      <ReceiptCard flat className="p-5 sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             {dueDate ? (
