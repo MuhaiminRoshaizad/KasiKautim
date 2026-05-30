@@ -47,9 +47,13 @@ export function ThemeToggle({ className }: { className?: string }) {
       aria-label={label}
       title={label}
       className={cn(
-        "inline-flex h-11 w-11 sm:h-10 sm:w-10 items-center justify-center",
+        // Visual + interaction parity with the dashboard layout's
+        // ICON_BTN (settings, sign-out) - same height/width, rounded
+        // corners, press feedback. The two were drifting because each
+        // file owned its own class string.
+        "inline-flex h-11 w-11 sm:h-10 sm:w-10 items-center justify-center rounded-lg",
         "border border-border bg-surface text-foreground",
-        "transition-colors hover:bg-surface-deep",
+        "transition-[color,background-color,transform] duration-150 hover:bg-surface-deep active:scale-95",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         className,
       )}

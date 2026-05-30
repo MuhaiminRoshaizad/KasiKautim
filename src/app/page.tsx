@@ -103,7 +103,7 @@ export default function HomePage() {
               Privacy
             </Link>
             <a
-              href="https://github.com"
+              href="https://github.com/MuhaiminRoshaizad/KasiKautim"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-foreground"
