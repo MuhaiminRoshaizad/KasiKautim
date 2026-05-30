@@ -17,19 +17,20 @@ import { Loader2 } from "lucide-react";
 export function GoogleCtaContent() {
   const { pending } = useLinkStatus();
 
-  if (pending) {
-    return (
-      <>
-        <Loader2 size={18} className="animate-spin" aria-hidden />
-        <span>Opening Google…</span>
-      </>
-    );
-  }
-
+  // Same span across both states so the aria-live region's text
+  // content swap gets announced by screen readers when navigation
+  // starts. Icon is decorative (aria-hidden) - the label carries
+  // the meaning.
   return (
     <>
-      <GoogleLogo />
-      <span>Continue with Google</span>
+      {pending ? (
+        <Loader2 size={18} className="animate-spin" aria-hidden />
+      ) : (
+        <GoogleLogo />
+      )}
+      <span aria-live="polite" aria-atomic="true">
+        {pending ? "Opening Google…" : "Continue with Google"}
+      </span>
     </>
   );
 }
