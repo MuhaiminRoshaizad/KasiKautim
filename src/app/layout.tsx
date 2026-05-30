@@ -43,6 +43,30 @@ export const metadata: Metadata = {
   applicationName: APP_NAME,
   authors: [{ name: APP_NAME }],
   formatDetection: { telephone: false, address: false, email: false },
+  // Per-route OG metadata exists on /b/[slug] via opengraph-image.tsx;
+  // this is the fallback for everywhere else (landing, login, privacy)
+  // so sharing https://kasi-kautim.vercel.app in WhatsApp shows a real
+  // preview card instead of a blank link.
+  openGraph: {
+    type: "website",
+    siteName: APP_NAME,
+    title: APP_NAME,
+    description: APP_DESCRIPTION,
+    images: [
+      {
+        url: "/landing-receipt.jpg",
+        width: 1600,
+        height: 1067,
+        alt: "Closeup of a thermal-printed paper receipt",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: APP_NAME,
+    description: APP_DESCRIPTION,
+    images: ["/landing-receipt.jpg"],
+  },
 };
 
 export const viewport: Viewport = {
