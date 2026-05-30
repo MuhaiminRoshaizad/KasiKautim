@@ -74,6 +74,14 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "8mb",
     },
   },
+  images: {
+    // Whitelist Supabase Storage signed URLs so next/image can optimise
+    // payment-proof thumbnails (served small but stored at phone-camera
+    // resolution). Pattern mirrors the CSP img-src on line 31.
+    remotePatterns: [
+      { protocol: "https", hostname: "*.supabase.co", pathname: "/storage/**" },
+    ],
+  },
   async headers() {
     return [
       {

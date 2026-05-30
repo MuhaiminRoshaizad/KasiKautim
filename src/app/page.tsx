@@ -70,6 +70,10 @@ export default function HomePage() {
               alt="Closeup of a thermal-printed paper receipt"
               width={1600}
               height={1067}
+              // 100vw on phone/tablet (single column), 50vw inside the
+              // lg:grid-cols-2 layout - lets Next pick a much smaller
+              // variant on phones instead of shipping the 1600px asset.
+              sizes="(max-width: 1024px) 100vw, 50vw"
               className="h-full w-full object-cover"
             />
           </figure>

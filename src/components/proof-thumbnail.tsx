@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/cn";
@@ -54,12 +55,15 @@ export function ProofThumbnail({
           className,
         )}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={signedUrl}
           alt={alt}
+          width={size === "sm" ? 32 : 56}
+          height={size === "sm" ? 32 : 56}
           className="h-full w-full object-cover"
-          loading="lazy"
+          // sizes is fixed at the displayed dimension - the thumbnail
+          // never grows past its container.
+          sizes={size === "sm" ? "32px" : "56px"}
         />
       </button>
 
