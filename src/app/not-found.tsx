@@ -22,7 +22,7 @@ export const metadata = {
 
 export default function NotFound() {
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pt-6 pb-12 sm:px-8">
+    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-6 pt-6 pb-12 sm:px-8">
       <header className="flex items-center justify-between">
         <Link
           href="/"
