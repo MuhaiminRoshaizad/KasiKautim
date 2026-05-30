@@ -277,11 +277,15 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
                     ) : null}
                   </div>
                   {isItemMode && claimedItems.length > 0 ? (
-                    <div className="ml-5 flex flex-wrap gap-1 text-[10px] text-foreground-faint">
+                    <div className="ml-5 flex min-w-0 flex-wrap gap-1 text-[10px] text-foreground-faint">
                       {claimedItems.map((it) => (
                         <span
                           key={it.id}
-                          className="border border-border px-1.5 py-0.5 font-mono"
+                          // max-w + truncate caps a single long item name
+                          // (e.g. "AYAM PERCIK SET WITH NASI LEMAK") at a
+                          // sane chip width with an ellipsis. Full name
+                          // stays in the title for hover/long-press reveal.
+                          className="max-w-[18ch] truncate border border-border px-1.5 py-0.5 font-mono"
                           title={`${it.name} · RM ${(it.price_cents / 100).toFixed(2)}`}
                         >
                           {it.name}
