@@ -35,6 +35,14 @@ const REDACT_KEYS = new Set([
   "paymentProofUrl",
   "proof_url",
   "proofUrl",
+  // Google profile identifiers - low-risk on their own but combined
+  // with bill content could correlate to real identity in logs.
+  "display_name",
+  "displayName",
+  "full_name",
+  "fullName",
+  "avatar_url",
+  "avatarUrl",
 ]);
 
 const IS_DEV = process.env.NODE_ENV !== "production";

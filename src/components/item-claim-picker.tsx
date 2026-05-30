@@ -363,7 +363,11 @@ function StepperRow({
             aria-valuemin={0}
             aria-valuemax={max}
             aria-valuenow={myCount}
-            aria-label={`${group.baseName} count`}
+            // Richer label so screen readers announce context, not just
+            // a bare number on tab focus. aria-valuetext takes precedence
+            // over aria-valuenow when both are present.
+            aria-label={group.baseName}
+            aria-valuetext={`You claimed ${myCount} of ${max}`}
             onKeyDown={onValueKeyDown}
             className={cn(
               "inline-flex h-11 min-w-[2.5rem] items-center justify-center px-2 font-mono text-lg tabular sm:h-9 sm:text-base",

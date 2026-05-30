@@ -70,8 +70,53 @@ export default function PrivacyPage() {
             <ul className="ml-4 list-disc space-y-1 text-foreground">
               <li>No third-party analytics, no Google Analytics, no Facebook Pixel.</li>
               <li>No advertising network. No data sold or shared with advertisers.</li>
-              <li>No EXIF retained on uploaded payment proofs — stripped server-side before storage.</li>
+              <li>
+                No EXIF, IPTC, XMP, or embedded colour-profile metadata retained on uploaded
+                payment proofs — stripped + normalised server-side before storage.
+              </li>
               <li>No login required for recipients — they tap the link and claim a name, no account.</li>
+            </ul>
+          </Section>
+
+          <Section title="What&rsquo;s visible to whom">
+            <ul className="ml-4 list-disc space-y-1 text-foreground">
+              <li>
+                <strong>Member names you add to a bill</strong> are visible to anyone with the bill
+                link. Use nicknames if you&rsquo;d prefer privacy in the WhatsApp group.
+              </li>
+              <li>
+                <strong>Payment proofs (screenshots)</strong> are visible only to the tukang bayar
+                via short-lived signed URLs — never indexed, never public.
+              </li>
+              <li>
+                <strong>Your DuitNow ID</strong> is shown to recipients on the bill page so they
+                can tap-to-copy. If you don&rsquo;t want it visible, leave it blank in Settings.
+              </li>
+            </ul>
+          </Section>
+
+          <Section title="Third parties we share data with">
+            <ul className="ml-4 list-disc space-y-1 text-foreground">
+              <li>
+                <strong>Supabase</strong> (Postgres + Auth + Storage) — primary data processor,
+                hosted in ap-northeast-1 (Tokyo, Japan).
+              </li>
+              <li>
+                <strong>Vercel</strong> (Singapore + global edge) — hosting + serverless functions
+                + log retention (~30 days, redacted of identifiers via our logger).
+              </li>
+              <li>
+                <strong>Google Gemini 2.5 Flash</strong> — only when you use the AI receipt scanner.
+                The receipt image is sent to Google for OCR; we don&rsquo;t send the image bytes
+                anywhere else. Per Google&rsquo;s policy, scanner inputs may be used to improve
+                their service. Don&rsquo;t scan receipts containing sensitive data you don&rsquo;t
+                want Google to see.
+              </li>
+              <li>
+                <strong>Google OAuth</strong> — only your email, display name, and avatar URL are
+                requested. We don&rsquo;t see your Google password and we don&rsquo;t request access
+                to anything else (Gmail, Calendar, Drive — all untouched).
+              </li>
             </ul>
           </Section>
 
@@ -86,12 +131,14 @@ export default function PrivacyPage() {
 
           <Section title="Retention">
             <p className="text-foreground">
-              Bills and payment proofs are kept until you delete them. There is no automatic
-              purge yet. To remove your data, email{" "}
+              Bills and payment proofs are kept until you delete them. There&rsquo;s no automatic
+              purge. Deleting a bill from your dashboard removes its database rows immediately; the
+              uploaded proof image files in Storage require a manual request to{" "}
               <a href={`mailto:${CONTACT_EMAIL}`} className="underline">
                 {CONTACT_EMAIL}
               </a>{" "}
-              and we&rsquo;ll delete your account, bills, members, and uploaded proofs.
+              for complete removal. Account-level deletion (your profile + every bill you own +
+              every uploaded proof) is also handled by email — we&rsquo;ll process within 14 days.
             </p>
           </Section>
 

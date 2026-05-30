@@ -46,21 +46,33 @@ export function CopyButton({
   const Icon = copied ? Check : Copy;
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={ariaLabel ?? `Copy ${label.toLowerCase()}`}
-      className={cn(
-        "inline-flex items-center justify-center border border-border bg-surface font-medium tracking-tight text-foreground",
-        "transition-[color,background-color,transform] duration-150 hover:bg-surface-deep active:scale-[0.97]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        SIZES[size],
-        copied && "border-ringgit text-ringgit",
-        className,
-      )}
-    >
-      <Icon size={16} aria-hidden />
-      <span>{copied ? "Copied" : label}</span>
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={ariaLabel ?? `Copy ${label.toLowerCase()}`}
+        className={cn(
+          "inline-flex items-center justify-center border border-border bg-surface font-medium tracking-tight text-foreground",
+          "transition-[color,background-color,transform] duration-150 hover:bg-surface-deep active:scale-[0.97]",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          SIZES[size],
+          copied && "border-ringgit text-ringgit",
+          className,
+        )}
+      >
+        <Icon size={16} aria-hidden />
+        <span>{copied ? "Copied" : label}</span>
+      </button>
+      {/*
+       * Screen-reader-only live region. The button's visible label flips
+       * from Copy -> Copied, but most screen readers don't re-announce
+       * button text on activation unless focus changes. role=status +
+       * aria-live=polite ensures the success is spoken without stealing
+       * focus.
+       */}
+      <span role="status" aria-live="polite" className="sr-only">
+        {copied ? "Copied to clipboard" : ""}
+      </span>
+    </>
   );
 }

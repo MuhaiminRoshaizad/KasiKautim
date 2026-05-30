@@ -93,6 +93,11 @@ export async function uploadProof(
       limitInputPixels: 50_000_000,
     })
       .rotate()
+      // Normalize to sRGB so any embedded ICC profile / colour-space
+      // metadata is dropped along with EXIF (sharp strips EXIF on JPEG
+      // re-encode by default, but ICC profiles can carry tracking
+      // identifiers or vendor info and stay otherwise).
+      .toColourspace("srgb")
       .jpeg({ quality: 85, mozjpeg: true })
       .toBuffer();
   } catch (err) {
