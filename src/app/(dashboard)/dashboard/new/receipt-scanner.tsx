@@ -287,7 +287,9 @@ function ScanResult({ receipt, onClear, onRescan, onApply }: ScanResultProps) {
             value={merchant}
             onChange={(e) => setMerchant(e.target.value)}
             placeholder="Merchant name"
-            className="mt-1 w-full bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-foreground-faint"
+            // text-base (16px) on mobile dodges iOS Safari's zoom-on-
+            // focus heuristic; tightens back at sm+ for desktop density.
+            className="mt-1 w-full bg-transparent text-base font-medium text-foreground outline-none placeholder:text-foreground-faint sm:text-sm"
             aria-label="Merchant name"
           />
         </div>
@@ -318,7 +320,9 @@ function ScanResult({ receipt, onClear, onRescan, onApply }: ScanResultProps) {
               onChange={(e) => updateItem(it.id, { name: e.target.value })}
               placeholder="Item name"
               maxLength={80}
-              className="min-w-0 flex-1 border border-transparent bg-transparent px-1 py-0.5 text-foreground placeholder:text-foreground-faint hover:border-border focus:border-foreground focus:bg-surface focus:outline-none"
+              // text-base on mobile dodges iOS Safari zoom-on-focus; tighten
+              // to text-xs at sm+ to preserve the row density on desktop.
+              className="min-w-0 flex-1 border border-transparent bg-transparent px-1 py-0.5 text-base text-foreground placeholder:text-foreground-faint hover:border-border focus:border-foreground focus:bg-surface focus:outline-none sm:text-xs"
               aria-label="Item name"
             />
             <span className="text-foreground-faint">{currency}</span>
@@ -328,7 +332,7 @@ function ScanResult({ receipt, onClear, onRescan, onApply }: ScanResultProps) {
               value={it.price}
               onChange={(e) => updateItem(it.id, { price: e.target.value })}
               placeholder="0.00"
-              className="w-16 border border-transparent bg-transparent px-1 py-0.5 text-right tabular text-foreground placeholder:text-foreground-faint hover:border-border focus:border-foreground focus:bg-surface focus:outline-none"
+              className="w-16 border border-transparent bg-transparent px-1 py-0.5 text-right text-base tabular text-foreground placeholder:text-foreground-faint hover:border-border focus:border-foreground focus:bg-surface focus:outline-none sm:text-xs"
               aria-label={`Price of ${it.name || "item"}`}
             />
             <button
@@ -379,7 +383,9 @@ function ScanResult({ receipt, onClear, onRescan, onApply }: ScanResultProps) {
             onChange={(e) => {
               if (PRICE_PATTERN.test(e.target.value)) setTotal(e.target.value);
             }}
-            className="w-20 border border-border bg-surface px-2 py-1 text-right font-mono text-sm tabular text-foreground focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 focus:ring-offset-background"
+            // text-base mobile, text-sm desktop - same iOS zoom guard as
+            // the rest of the inputs in this panel.
+            className="w-20 border border-border bg-surface px-2 py-1 text-right font-mono text-base tabular text-foreground focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 focus:ring-offset-background sm:text-sm"
             aria-label="Total"
           />
         </div>
