@@ -58,6 +58,11 @@ export function ItemPicker({
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // True when the realtime channel fails to connect or drops - usually
+  // a tracker blocker (Brave / Firefox+uBlock) killing the websocket.
+  // Surfaced as a banner so the user knows other people's claims won't
+  // appear live; tapping refresh manually still works.
+  const [realtimeBroken, setRealtimeBroken] = useState(false);
 
   // Optimistic mirror of members so the chip flips instantly on tap
   // instead of waiting for the full Vercel -> Supabase Tokyo round-trip
@@ -80,6 +85,10 @@ export function ItemPicker({
   );
 
   // Realtime: any claim by anyone re-renders the picker via router.refresh().
+  // The subscribe callback yields status updates - SUBSCRIBED on success,
+  // CHANNEL_ERROR / TIMED_OUT / CLOSED if a tracker blocker drops the
+  // websocket or the network goes flaky. Flag the failure state so we
+  // can show a banner instead of pretending live updates work.
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
     const channel = supabase
@@ -94,7 +103,16 @@ export function ItemPicker({
         },
         () => router.refresh(),
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") setRealtimeBroken(false);
+        else if (
+          status === "CHANNEL_ERROR" ||
+          status === "TIMED_OUT" ||
+          status === "CLOSED"
+        ) {
+          setRealtimeBroken(true);
+        }
+      });
     return () => {
       void supabase.removeChannel(channel);
     };
@@ -151,6 +169,17 @@ export function ItemPicker({
         Tap each item you ordered. For lines like &quot;Nasi Lemak ×3&quot;
         use the [−] [+] stepper to pick how many you ate.
       </p>
+
+      {realtimeBroken ? (
+        <p
+          role="status"
+          className="border-l-2 border-highlighter bg-highlighter/10 px-3 py-2 text-[11px] text-foreground-soft"
+        >
+          Live updates are off (network or browser extension blocked the
+          connection). Your taps still save. Pull-to-refresh to see other
+          claimers.
+        </p>
+      ) : null}
 
       <ItemClaimPicker
         items={items}
