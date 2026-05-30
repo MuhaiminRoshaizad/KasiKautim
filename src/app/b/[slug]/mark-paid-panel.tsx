@@ -40,7 +40,10 @@ const METHOD_OPTIONS: { value: PaymentMethod | ""; label: string }[] = [
 ];
 
 const FIELD =
-  "h-11 w-full rounded-lg border border-border bg-surface px-3 font-sans text-sm text-foreground placeholder:text-foreground-faint focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 focus:ring-offset-background";
+  // text-base on mobile (iOS Safari's 16px no-zoom threshold), tighten
+  // back at sm+ for desktop density. Same pattern as the create-bill
+  // FIELD_INPUT + the scanner result-panel inputs.
+  "h-11 w-full rounded-lg border border-border bg-surface px-3 font-sans text-base text-foreground placeholder:text-foreground-faint focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 focus:ring-offset-background sm:text-sm";
 
 export function MarkPaidPanel({
   token,
@@ -456,9 +459,12 @@ function ProofPicker({
           disabled={!canPick}
           onClick={() => fileInputRef.current?.click()}
           className={cn(
-            "inline-flex h-11 items-center justify-center gap-2 border border-dashed border-border bg-surface/60 px-4 text-sm font-medium text-foreground-soft transition-colors hover:bg-surface-deep",
+            // rounded-lg + active:scale parity with the rest of the
+            // panel's controls; the dashed border preserves the
+            // "drop zone" affordance.
+            "inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-surface/60 px-4 text-sm font-medium text-foreground-soft transition-[color,background-color,transform] duration-150 hover:bg-surface-deep active:scale-[0.97]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-            "disabled:cursor-not-allowed disabled:opacity-60",
+            "disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100",
           )}
         >
           <Upload size={14} aria-hidden />

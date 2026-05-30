@@ -106,7 +106,11 @@ export function DeleteBillPanel({ slug, title }: DeleteBillPanelProps) {
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
             placeholder={title}
-            className="mt-1 h-11 w-full border border-border bg-paper px-3 font-mono text-sm text-foreground placeholder:text-foreground-faint focus:outline-none focus:ring-2 focus:ring-stamp focus:ring-offset-2 focus:ring-offset-background"
+            // text-base on mobile dodges iOS zoom; rounded-lg + ring-
+            // foreground brings this in line with every other input
+            // in the app (was sharp-cornered + ring-stamp, the only
+            // input using the destructive ring colour).
+            className="mt-1 h-11 w-full rounded-lg border border-border bg-paper px-3 font-mono text-base text-foreground placeholder:text-foreground-faint focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 focus:ring-offset-background sm:text-sm"
           />
 
           <form action={deleteBill} className="mt-6 grid grid-cols-2 gap-2">

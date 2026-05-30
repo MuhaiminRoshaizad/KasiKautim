@@ -84,7 +84,11 @@ function ClaimButton() {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex h-11 items-center justify-center border border-foreground bg-foreground px-4 text-sm font-medium text-paper transition-colors hover:bg-foreground/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50 sm:h-9"
+      // rounded-sm + active:scale-[0.97] for parity with the Button
+      // component's standard CTA treatment - this used to render as a
+      // sharp-cornered hard-edged block with no press feedback while
+      // the rest of the app's CTAs felt soft + tactile.
+      className="inline-flex h-11 items-center justify-center rounded-sm border border-foreground bg-foreground px-4 text-sm font-medium text-paper transition-[color,background-color,transform] duration-150 hover:bg-foreground/90 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50 sm:h-9"
     >
       {pending ? "Claiming..." : "That's me"}
     </button>

@@ -349,8 +349,8 @@ function StepperRow({
             disabled={disabled || anyPending || myCount === 0}
             aria-label="One fewer"
             className={cn(
-              "inline-flex h-11 w-11 items-center justify-center border border-border bg-surface sm:h-9 sm:w-9",
-              "transition-colors hover:bg-surface-deep active:bg-surface-deep/80",
+              "inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-surface sm:h-9 sm:w-9",
+              "transition-[color,background-color,transform] duration-150 hover:bg-surface-deep active:scale-95",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               "disabled:cursor-not-allowed disabled:opacity-40",
             )}
@@ -387,8 +387,8 @@ function StepperRow({
             disabled={disabled || anyPending || myCount === max}
             aria-label="One more"
             className={cn(
-              "inline-flex h-11 w-11 items-center justify-center border border-border bg-surface sm:h-9 sm:w-9",
-              "transition-colors hover:bg-surface-deep active:bg-surface-deep/80",
+              "inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-surface sm:h-9 sm:w-9",
+              "transition-[color,background-color,transform] duration-150 hover:bg-surface-deep active:scale-95",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               "disabled:cursor-not-allowed disabled:opacity-40",
             )}

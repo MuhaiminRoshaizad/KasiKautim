@@ -151,7 +151,7 @@ export function MembersRowInput({
                 }
                 maxLength={LIMITS.memberName}
                 placeholder={isTrailing ? "Add a name..." : "Name"}
-                className="min-w-0 flex-1 border border-transparent bg-paper px-2 py-1.5 text-foreground placeholder:text-foreground-faint hover:border-border focus:border-foreground focus:outline-none disabled:bg-transparent"
+                className="min-w-0 flex-1 border border-transparent bg-surface px-2 py-1.5 text-foreground placeholder:text-foreground-faint hover:border-border focus:border-foreground focus:outline-none disabled:bg-transparent"
                 aria-label={`Member ${i + 1} name`}
               />
               {showAmount ? (
@@ -164,7 +164,7 @@ export function MembersRowInput({
                     onChange={(e) => handleAmountInput(i, e.target.value)}
                     disabled={disabled || isTrailing}
                     placeholder="—"
-                    className="w-20 shrink-0 border border-transparent bg-paper px-2 py-1.5 text-right tabular text-foreground placeholder:text-foreground-faint hover:border-border focus:border-foreground focus:outline-none disabled:bg-transparent"
+                    className="w-20 shrink-0 border border-transparent bg-surface px-2 py-1.5 text-right tabular text-foreground placeholder:text-foreground-faint hover:border-border focus:border-foreground focus:outline-none disabled:bg-transparent"
                     aria-label={`Member ${i + 1} custom amount`}
                   />
                 </>

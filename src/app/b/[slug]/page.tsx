@@ -319,7 +319,10 @@ function BankDeepLinks() {
           href={l.href}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 border border-border bg-surface px-3 text-xs font-medium text-foreground-soft transition-colors hover:bg-surface-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:h-9 sm:flex-none"
+          // rounded-lg + active:scale parity with the rest of the
+          // header icon buttons; these were the only secondary chips
+          // still rendering sharp-cornered with no press feedback.
+          className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-xs font-medium text-foreground-soft transition-[color,background-color,transform] duration-150 hover:bg-surface-deep active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:h-9 sm:flex-none"
         >
           <ExternalLink size={12} aria-hidden />
           {l.label}
