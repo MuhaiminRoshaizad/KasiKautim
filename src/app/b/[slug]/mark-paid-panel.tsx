@@ -437,7 +437,7 @@ function ProofPicker({
                 type="button"
                 onClick={onClear}
                 disabled={!canPick}
-                className="inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-widest text-foreground-soft hover:text-stamp"
+                className="inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-widest text-foreground-soft transition-[color,transform] duration-150 hover:text-stamp active:scale-95 disabled:active:scale-100 disabled:opacity-40"
               >
                 <Trash2 size={11} aria-hidden />
                 Remove

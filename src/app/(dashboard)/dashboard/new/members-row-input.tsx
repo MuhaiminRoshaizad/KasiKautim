@@ -174,7 +174,7 @@ export function MembersRowInput({
                 onClick={() => removeRow(i)}
                 disabled={disabled || !filled || isTrailing}
                 aria-label={`Remove member ${i + 1}`}
-                className="inline-flex h-7 w-7 shrink-0 items-center justify-center text-foreground-faint hover:text-stamp disabled:opacity-30 disabled:hover:text-foreground-faint"
+                className="inline-flex h-7 w-7 shrink-0 items-center justify-center text-foreground-faint transition-[color,transform] duration-150 hover:text-stamp active:scale-90 disabled:active:scale-100 disabled:opacity-30 disabled:hover:text-foreground-faint"
               >
                 <Trash2 size={12} aria-hidden />
               </button>

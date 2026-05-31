@@ -144,9 +144,9 @@ export function ReceiptScanner({ onScanned }: ReceiptScannerProps) {
           disabled={isPending}
           onClick={() => inputRef.current?.click()}
           className={cn(
-            "inline-flex h-11 flex-1 items-center justify-center gap-2 border border-foreground bg-foreground px-4 text-sm font-medium text-paper transition-colors hover:bg-foreground/90",
+            "inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-sm border border-foreground bg-foreground px-4 text-sm font-medium text-paper transition-[color,background-color,transform] duration-150 hover:bg-foreground/90 active:scale-[0.97]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-            "disabled:cursor-not-allowed disabled:opacity-60",
+            "disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100",
           )}
         >
           {isPending ? (
@@ -297,7 +297,7 @@ function ScanResult({ receipt, onClear, onRescan, onApply }: ScanResultProps) {
           type="button"
           onClick={onClear}
           aria-label="Clear scan"
-          className="inline-flex h-7 w-7 shrink-0 items-center justify-center text-foreground-faint hover:text-foreground"
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center text-foreground-faint transition-[color,transform] duration-150 hover:text-foreground active:scale-90"
         >
           <X size={14} aria-hidden />
         </button>
@@ -339,7 +339,7 @@ function ScanResult({ receipt, onClear, onRescan, onApply }: ScanResultProps) {
               type="button"
               onClick={() => removeItem(it.id)}
               aria-label={`Remove ${it.name || "item"}`}
-              className="inline-flex h-6 w-6 items-center justify-center text-foreground-faint hover:text-stamp"
+              className="inline-flex h-6 w-6 items-center justify-center text-foreground-faint transition-[color,transform] duration-150 hover:text-stamp active:scale-90"
             >
               <Trash2 size={12} aria-hidden />
             </button>
@@ -416,8 +416,8 @@ function ScanResult({ receipt, onClear, onRescan, onApply }: ScanResultProps) {
           onClick={apply}
           disabled={!isSupportedCurrency}
           className={cn(
-            "inline-flex h-10 flex-1 items-center justify-center gap-2 border border-ringgit bg-ringgit px-4 text-sm font-medium text-paper transition-colors hover:bg-ringgit/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ringgit focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-            "disabled:cursor-not-allowed disabled:opacity-50",
+            "inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-sm border border-ringgit bg-ringgit px-4 text-sm font-medium text-paper transition-[color,background-color,transform] duration-150 hover:bg-ringgit/90 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ringgit focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+            "disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100",
           )}
           title={
             isSupportedCurrency
@@ -431,7 +431,7 @@ function ScanResult({ receipt, onClear, onRescan, onApply }: ScanResultProps) {
         <button
           type="button"
           onClick={onRescan}
-          className="inline-flex h-10 items-center justify-center gap-2 border border-border bg-surface px-4 text-sm font-medium text-foreground-soft transition-colors hover:bg-surface-deep"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-sm border border-border bg-surface px-4 text-sm font-medium text-foreground-soft transition-[color,background-color,transform] duration-150 hover:bg-surface-deep active:scale-[0.97]"
         >
           <Camera size={14} aria-hidden />
           Rescan

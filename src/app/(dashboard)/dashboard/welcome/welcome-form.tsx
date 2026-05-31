@@ -11,7 +11,7 @@ import {
 } from "@/actions/profile";
 
 const FIELD =
-  "h-12 w-full border border-border bg-surface px-3 font-sans text-base text-foreground placeholder:text-foreground-faint focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 focus:ring-offset-background";
+  "h-12 w-full rounded-lg border border-border bg-surface px-3 font-sans text-base text-foreground placeholder:text-foreground-faint focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 focus:ring-offset-background";
 
 const INITIAL: ProfileUpdateState = { ok: null, message: "" };
 

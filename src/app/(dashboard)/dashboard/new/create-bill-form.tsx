@@ -616,7 +616,7 @@ function ItemModeFields({
                 onClick={() => removeItem(it.id)}
                 disabled={disabled}
                 aria-label={`Remove ${it.name || "item"}`}
-                className="inline-flex h-7 w-7 items-center justify-center text-foreground-faint hover:text-stamp"
+                className="inline-flex h-7 w-7 items-center justify-center text-foreground-faint transition-[color,transform] duration-150 hover:text-stamp active:scale-90 disabled:active:scale-100 disabled:opacity-40"
               >
                 <Trash2 size={12} aria-hidden />
               </button>
