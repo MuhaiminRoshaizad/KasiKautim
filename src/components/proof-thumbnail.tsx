@@ -30,6 +30,11 @@ export function ProofThumbnail({
 }: ProofThumbnailProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
+  // Signed Storage URLs expire after 24 hours. If the user lingers
+  // past that on the report page, the <Image> 404s silently with a
+  // broken-image glyph. Tracking the failure lets us show an
+  // explicit fallback chip instead.
+  const [loadError, setLoadError] = useState(false);
 
   // Native <dialog> open/close kept in sync with React state.
   useEffect(() => {
@@ -41,6 +46,21 @@ export function ProofThumbnail({
 
   if (!signedUrl) {
     return null;
+  }
+
+  if (loadError) {
+    return (
+      <span
+        title="Signed URL expired - refresh the page to mint a new one"
+        className={cn(
+          "inline-flex items-center justify-center border border-border bg-surface text-[9px] uppercase tracking-widest text-foreground-faint",
+          size === "sm" ? "h-8 w-8" : "h-14 w-14",
+          className,
+        )}
+      >
+        ↺
+      </span>
+    );
   }
 
   return (
@@ -64,6 +84,7 @@ export function ProofThumbnail({
           // sizes is fixed at the displayed dimension - the thumbnail
           // never grows past its container.
           sizes={size === "sm" ? "32px" : "56px"}
+          onError={() => setLoadError(true)}
         />
       </button>
 
@@ -90,6 +111,7 @@ export function ProofThumbnail({
             src={signedUrl}
             alt={alt}
             className="block max-h-[90vh] max-w-[95vw] object-contain"
+            onError={() => setLoadError(true)}
           />
         </div>
       </dialog>

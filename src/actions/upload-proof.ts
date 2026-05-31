@@ -3,7 +3,7 @@
 import sharp from "sharp";
 import { z } from "zod";
 
-import { logger } from "@/lib/logger";
+import { logger, newErrorRef } from "@/lib/logger";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { MemberByTokenRpc } from "@/types/db";
@@ -22,6 +22,8 @@ export interface UploadProofState {
   ok: boolean | null;
   message: string;
   proofPath?: string;
+  /** Short correlation ID for support quoting. Server logs the same. */
+  ref?: string;
 }
 
 const TokenSchema = z.string().trim().min(8).max(64);
@@ -106,7 +108,9 @@ export async function uploadProof(
     // previously fell back to raw bytes, but that silently bypassed the
     // EXIF-strip promise — payment-proof screenshots from iPhones carry
     // GPS, device IDs, timestamps. Hard-reject instead and ask for JPG/PNG.
+    const ref = newErrorRef();
     logger.warn("sharp EXIF strip failed; rejecting upload", {
+      ref,
       mime: file.type,
       err: err instanceof Error ? err.message : "unknown",
     });
@@ -114,6 +118,7 @@ export async function uploadProof(
       ok: false,
       message:
         "Couldn't process that image. Try saving it as JPG or PNG and upload again.",
+      ref,
     };
   }
 
@@ -127,12 +132,19 @@ export async function uploadProof(
     });
 
   if (uploadError) {
+    const ref = newErrorRef();
     logger.error("payment-proof upload failed", {
+      ref,
+      // Supabase Storage errors expose name + statusCode; log both
+      // alongside the message for support triage.
+      code: (uploadError as { statusCode?: string }).statusCode,
+      name: uploadError.name,
       message: uploadError.message,
     });
     return {
       ok: false,
       message: "Couldn't upload the image. Try again.",
+      ref,
     };
   }
 

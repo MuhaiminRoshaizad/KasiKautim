@@ -197,7 +197,9 @@ export function CreateBillFormIsland() {
       const initial: CreateBillState = { ok: null, message: "" };
       const result = await createBill(initial, fd);
       if (result?.ok === false) {
-        setServerError(result.message);
+        setServerError(
+          result.ref ? `${result.message} · Ref ${result.ref}` : result.message,
+        );
         if (result.fieldErrors) {
           for (const [field, message] of Object.entries(result.fieldErrors)) {
             setError(field as keyof CreateBillForm, { message });

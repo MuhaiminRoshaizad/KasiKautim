@@ -7,7 +7,7 @@ import { google } from "@ai-sdk/google";
 import { z } from "zod";
 
 import { AI_SCANNER_MODEL } from "@/lib/constants";
-import { logger } from "@/lib/logger";
+import { logger, newErrorRef } from "@/lib/logger";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const ACCEPTED_TYPES = new Set([
@@ -236,6 +236,9 @@ export interface ScanReceiptState {
   ok: boolean | null;
   message: string;
   receipt?: ScannedReceipt;
+  /** Short correlation ID surfaced under the error message so users
+   *  can quote it in support requests. Server logs the same ref. */
+  ref?: string;
 }
 
 export async function scanReceipt(
@@ -337,8 +340,13 @@ export async function scanReceipt(
     // for "10 NASI LEMAK" single-line formats. Both produce per-unit
     // items so groupItemsByName can render a single grouped stepper row.
     const items = expandQuantityLines(expandQuantityFields(object.items));
+    // Heuristic: ignore items array if every item has price_cents=0
+    // (Gemini sometimes hallucinates "FREE ITEM" rows on non-receipt
+    // photos). Combined with the merchant + total checks this avoids
+    // the false-positive where the only "evidence" is hallucinated.
+    const itemsWithPrice = items.filter((it) => it.price_cents > 0);
     const looksLikeReceipt =
-      items.length > 0 ||
+      itemsWithPrice.length > 0 ||
       object.total_cents > 0 ||
       (object.merchant_name?.trim()?.length ?? 0) > 0;
 
@@ -356,19 +364,26 @@ export async function scanReceipt(
       receipt: { ...object, items },
     };
   } catch (err) {
+    const ref = newErrorRef();
     if (NoObjectGeneratedError.isInstance(err)) {
-      logger.warn("scan-receipt: model returned no object", { cause: err.cause });
+      logger.warn("scan-receipt: model returned no object", {
+        ref,
+        cause: err.cause,
+      });
       return {
         ok: false,
         message: "Couldn't read that receipt. Try a clearer photo.",
+        ref,
       };
     }
     logger.error("scan-receipt failed", {
+      ref,
       message: err instanceof Error ? err.message : "unknown",
     });
     return {
       ok: false,
       message: "Scanner hit an error. Try again or fill in manually.",
+      ref,
     };
   }
 }

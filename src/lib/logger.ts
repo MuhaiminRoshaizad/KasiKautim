@@ -100,3 +100,19 @@ export const logger = {
   warn: (...args: unknown[]) => emit("warn", args),
   error: (...args: unknown[]) => emit("error", args),
 };
+
+/**
+ * Short correlation ID for user-facing error messages. Surfaced to
+ * the user as "Ref · err_xxxxxx" so a support email lands with a
+ * value we can grep server logs for. Six hex chars = ~16M values =
+ * collision-safe per-day.
+ */
+export function newErrorRef(): string {
+  // crypto.randomUUID is available in modern Node + browsers; falls
+  // back to Math.random for ancient runtimes.
+  const raw =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID().replace(/-/g, "")
+      : Math.random().toString(36).slice(2);
+  return `err_${raw.slice(0, 6)}`;
+}

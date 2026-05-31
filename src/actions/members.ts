@@ -101,6 +101,13 @@ export async function claimMember(
 /**
  * Public — anyone holding a member token can mark that member paid.
  * The RPC is idempotent (no-op when already paid) and atomic.
+ *
+ * Safe to retry on any error path: mark_member_paid's first action
+ * is `UPDATE ... WHERE paid = false`, so a second call after a
+ * successful first call (network timeout + user retap) is a 0-row
+ * UPDATE — no double-stamp, no double payment_event, no race. The
+ * client can therefore re-fire the action without an idempotency
+ * key. Documented here so future maintainers don't add one defensively.
  */
 export async function markPaid(
   _prev: MarkPaidState,
@@ -163,6 +170,10 @@ export async function markPaid(
  * On success, redirects to /b/[slug] (no ?m=) so the user lands on the
  * claim picker. Cookie is intentionally NOT cleared — same device can
  * still re-claim a different slot.
+ *
+ * Idempotent: unclaim_member's UPDATE has WHERE paid = false; a second
+ * call against a still-unclaimed slot just re-nulls already-null fields.
+ * No idempotency key needed.
  */
 export async function unclaimMember(
   _prev: ClaimMemberState,

@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
-import { logger } from "@/lib/logger";
+import { logger, newErrorRef } from "@/lib/logger";
 import { parseMembers } from "@/lib/members-parser";
 import { splitEqually, sumCents, toCents } from "@/lib/money";
 import {
@@ -19,6 +19,9 @@ import type { BillMemberInsert } from "@/types/db";
 export interface CreateBillState {
   ok: boolean | null;
   message: string;
+  /** Short correlation ID for support quoting. Populated on hard
+   *  catch-block failures so the user can quote it back. */
+  ref?: string;
   fieldErrors?: Partial<
     Record<
       "title" | "description" | "total" | "dueDate" | "membersInput" | "items",
@@ -254,12 +257,15 @@ export async function createBill(
       return data;
     }).then((b) => insertMembersOrCleanup(b.id, b.slug));
   } catch (err) {
+    const ref = newErrorRef();
     logger.error("createBill failed", {
+      ref,
       err: err instanceof Error ? err.message : "unknown",
     });
     return {
       ok: false,
       message: "Couldn't create the bill. Try again in a sec.",
+      ref,
     };
   }
 

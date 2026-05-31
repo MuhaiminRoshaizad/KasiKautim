@@ -203,7 +203,13 @@ export function MarkPaidPanel({
         previewUrl={proofPreviewUrl}
         proofPath={proofPath}
         isUploading={isUploading}
-        errorMessage={proofState.ok === false ? proofState.message : null}
+        errorMessage={
+          proofState.ok === false
+            ? proofState.ref
+              ? `${proofState.message} · Ref ${proofState.ref}`
+              : proofState.message
+            : null
+        }
         fileInputRef={fileInputRef}
         onFile={handleFile}
         onClear={clearProof}
