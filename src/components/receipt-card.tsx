@@ -61,9 +61,16 @@ interface ReceiptDividerProps {
 }
 
 export function ReceiptDivider({ className, label }: ReceiptDividerProps) {
+  // Unlabelled dividers are purely decorative receipt seams - hide
+  // them from assistive tech so a screen reader doesn't announce
+  // "separator" between every section. Labelled variants (e.g.
+  // "Breakdown") keep role="separator" so the label is read as a
+  // navigation landmark.
+  const decorative = !label;
   return (
     <div
-      role="separator"
+      role={decorative ? undefined : "separator"}
+      aria-hidden={decorative || undefined}
       className={cn(
         "my-3 flex items-center gap-3 text-[10px] font-medium uppercase tracking-widest text-foreground-faint",
         className,

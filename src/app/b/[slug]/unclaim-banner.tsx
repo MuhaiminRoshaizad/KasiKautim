@@ -71,7 +71,11 @@ function UnclaimButton() {
       type="submit"
       disabled={pending}
       className={cn(
-        "text-[11px] font-medium underline-offset-2 hover:underline focus-visible:underline focus-visible:outline-none",
+        // Underline + ring as a layered focus indicator. The underline
+        // alone is technically WCAG-valid but is subtle against the
+        // banner's surface tone; the ring guarantees visibility for
+        // users on high-contrast displays or older screen readers.
+        "rounded-sm px-1 text-[11px] font-medium underline-offset-2 hover:underline focus-visible:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
         pending ? "text-foreground-faint" : "text-foreground",
       )}
     >
