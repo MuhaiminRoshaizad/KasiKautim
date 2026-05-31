@@ -149,10 +149,11 @@ function EmptyState({ needsDuitnow }: { needsDuitnow: boolean }) {
           Dashboard · empty
         </div>
         <h1 className="mt-2 font-display text-3xl uppercase tracking-tight text-foreground">
-          No bills yet lah
+          No bills yet
         </h1>
         <p className="mx-auto mt-3 max-w-sm text-sm text-foreground-soft">
-          Set up a bill and get one link to drop in the group chat.
+          Set up your first one and you&apos;ll get a link to drop in the
+          group chat.
         </p>
 
         <ReceiptDivider />

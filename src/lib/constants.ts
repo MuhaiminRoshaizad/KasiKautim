@@ -1,7 +1,7 @@
 export const APP_NAME = "KasiKautim";
-export const APP_TAGLINE = "Kasi kautim, no awkward chasing.";
+export const APP_TAGLINE = "Kasi kautim. The group chat settles itself.";
 export const APP_DESCRIPTION =
-  "Create a bill, share one link, watch it settle. Built for Malaysian group chats.";
+  "Snap a receipt or type one in, share one link in your WhatsApp group, and let your friends settle without you chasing. Built in Malaysia.";
 
 export const SUPPORTED_CURRENCIES = ["MYR"] as const;
 export const DEFAULT_CURRENCY: (typeof SUPPORTED_CURRENCIES)[number] = "MYR";

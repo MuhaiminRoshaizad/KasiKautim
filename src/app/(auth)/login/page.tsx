@@ -43,10 +43,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               {APP_NAME} · sign in
             </div>
             <h1 className="mt-1 font-display text-3xl uppercase tracking-tight text-foreground">
-              Welcome back lah
+              Sign in
             </h1>
             <p className="mt-2 text-sm text-foreground-soft">
-              Sign in with Google. First time? Same button creates your account.
+              Google account works for both signing in and signing up. One
+              tap.
             </p>
           </div>
 

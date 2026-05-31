@@ -198,9 +198,9 @@ export function ReceiptScanner({ onScanned }: ReceiptScannerProps) {
               {isPending ? "Reading receipt..." : "Scan a receipt"}
             </div>
             <p className="text-xs text-foreground-soft sm:text-sm">
-              Snap your restaurant receipt — we auto-fill the title, total,
-              and items using Google Gemini. Edit anything that&apos;s wrong
-              before applying.
+              Snap a photo and we&apos;ll pull out the title, total, and
+              items via Gemini. You can fix anything that looks off before
+              applying.
             </p>
           </div>
         </div>

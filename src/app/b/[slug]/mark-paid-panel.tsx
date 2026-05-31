@@ -225,8 +225,8 @@ export function MarkPaidPanel({
       ) : null}
       <p className="text-center text-[11px] text-foreground-faint">
         {!canPay
-          ? "Tap items above first to compute your share."
-          : "Tap after you transfer. Tukang bayar gets notified instantly."}
+          ? "Tap your items above first so we know your share."
+          : "Tap once you've actually paid. The tukang bayar sees it right away."}
       </p>
 
       <ConfirmPaidDialog
@@ -296,9 +296,9 @@ function ConfirmPaidDialog({
         </div>
 
         <p className="mt-2 text-sm text-foreground-soft">
-          Once marked, the tukang bayar sees this as settled. You can&apos;t
-          un-mark it yourself — they&apos;d have to delete the bill to fix
-          mistakes.
+          Once you mark this paid, the tukang bayar sees it as settled.
+          You can&apos;t undo it; only they can fix mistakes by deleting
+          the bill.
         </p>
 
         <dl className="mt-5 grid grid-cols-[max-content_1fr] gap-x-4 gap-y-2 text-sm">

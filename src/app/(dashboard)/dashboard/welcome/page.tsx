@@ -38,11 +38,11 @@ export default async function WelcomePage() {
           {APP_NAME} · Welcome
         </div>
         <h1 className="mt-2 font-display text-3xl uppercase tracking-tight text-foreground">
-          Set up your profile lah
+          Quick profile setup
         </h1>
         <p className="mt-2 text-sm text-foreground-soft">
-          We&apos;ll show your name on every bill you create, and the DuitNow
-          ID lets your friends pay you back with one tap.
+          Your name shows up on every bill you create. A DuitNow ID is
+          optional but recipients can tap to copy it when paying you back.
         </p>
 
         <ReceiptDivider />

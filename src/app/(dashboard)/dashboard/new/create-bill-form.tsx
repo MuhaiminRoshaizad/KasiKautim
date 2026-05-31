@@ -228,10 +228,11 @@ export function CreateBillFormIsland() {
       </div>
 
       <h1 className="mt-4 font-display text-3xl uppercase tracking-tight text-foreground">
-        Jom, create bill
+        Jom, set up a bill
       </h1>
       <p className="mt-2 text-sm text-foreground-soft">
-        Fill in the basics. We mint one share link; people tap their name to pay.
+        Fill in the bits below and we&apos;ll spit out one share link you
+        can drop in the group chat.
       </p>
 
       <ReceiptDivider />
@@ -252,7 +253,7 @@ export function CreateBillFormIsland() {
               type="text"
               autoComplete="off"
               maxLength={100}
-              placeholder="Friday lunch · Restoran Ali"
+              placeholder="Mamak after futsal"
               className={FIELD_INPUT}
               disabled={pending}
             />
@@ -268,7 +269,7 @@ export function CreateBillFormIsland() {
               {...register("description")}
               rows={2}
               maxLength={500}
-              placeholder="Booked the back room, drinks included."
+              placeholder="Back room, drinks included"
               className={cn(FIELD_INPUT, "h-auto py-3")}
               disabled={pending}
             />
@@ -356,12 +357,12 @@ export function CreateBillFormIsland() {
         {splitMode === "item" && includeMyself && pickerItems.length > 0 ? (
           <div className="border border-border bg-surface/40 p-4">
             <div className="text-xs font-medium uppercase tracking-widest text-foreground-soft">
-              What did YOU eat?
+              Tap what you ate
             </div>
             <p className="mt-1 text-[11px] text-foreground-faint">
-              Tap the items you ordered yourself. Your share gets auto-paid
-              when the bill is created — friends only see what they need to
-              pay for.
+              Pick the items you ordered. Your share gets auto-paid when
+              the bill is created, so the link only shows your friends
+              what they need to settle.
             </p>
             <div className="mt-3">
               <ItemClaimPicker

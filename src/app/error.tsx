@@ -54,9 +54,9 @@ export default function GlobalError({
             Page hit an error
           </h1>
           <p className="mx-auto mt-3 max-w-sm text-sm text-foreground-soft">
-            Could be a one-off hiccup — try again. If it keeps
-            happening, the tukang bayar can recreate the bill, or you
-            can head back home and start fresh.
+            Usually a one-off. Try again, and if it keeps happening the
+            tukang bayar can recreate the bill or you can head home and
+            start fresh.
           </p>
           {error.digest ? (
             <p className="mt-4 font-mono text-[10px] uppercase tracking-widest text-foreground-faint">

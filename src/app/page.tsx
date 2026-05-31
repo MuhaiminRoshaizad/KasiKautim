@@ -34,14 +34,14 @@ export default function HomePage() {
           <h1 className="mt-4 font-display text-5xl uppercase leading-[0.95] tracking-tight text-foreground sm:text-6xl lg:text-7xl">
             Kasi kautim.
             <br />
-            No awkward
+            Bills settle
             <br />
-            chasing.
+            themselves.
           </h1>
           <p className="mt-6 max-w-md text-base leading-relaxed text-foreground-soft sm:text-lg">
-            Create a bill. Share one link in the group chat. Members tap
-            their name, pay, mark settled. You see who&apos;s paid and
-            who&apos;s still ghosting.
+            Drop the receipt or punch in the items, share one link in
+            your WhatsApp group, and your friends tap their own name to
+            settle. You see who&apos;s paid as it happens.
           </p>
 
           <div className="mt-8">
@@ -49,7 +49,7 @@ export default function HomePage() {
           </div>
 
           <p className="mt-4 text-xs text-foreground-faint">
-            Sign in with Google. No app install. Link works in WhatsApp.
+            Sign in with Google. Nothing to install. Link opens in WhatsApp.
           </p>
         </div>
 
@@ -86,10 +86,10 @@ export default function HomePage() {
             </p>
             <p className="mt-5 max-w-md text-sm leading-relaxed text-foreground-soft sm:text-base">
               Every Malaysian has a paper receipt sitting in a wallet, a
-              car cupholder, or somewhere in their photo roll, waiting to
-              be split. {APP_NAME} turns that receipt into one share link
-              your group chat can actually settle — no chasing, no awkward
-              calculations.
+              car cupholder, or somewhere in their photo roll, waiting
+              to be split. {APP_NAME} turns it into one link the group
+              chat can actually act on. You stop chasing; everyone
+              settles on their own time.
             </p>
           </div>
         </div>
@@ -126,10 +126,10 @@ function SampleReceipt() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="font-mono text-[10px] uppercase tracking-widest text-foreground-faint">
-            Bill · MAKAN-PJ-22
+            Bill · MK7QA21
           </div>
           <h2 className="mt-1 font-display text-2xl uppercase tracking-tight text-foreground">
-            Friday lunch · Restoran Ali
+            Mamak after futsal
           </h2>
         </div>
         <InkStamp label="Live" variant="paid" rotate={-6} />
@@ -179,8 +179,8 @@ function SampleReceipt() {
 }
 
 const SAMPLE_MEMBERS = [
-  { name: "Aisha",  amount: 3_000, paid: true },
-  { name: "Faiz",   amount: 3_000, paid: true },
-  { name: "Wani",   amount: 3_000, paid: false },
-  { name: "Hafiz",  amount: 3_000, paid: false },
+  { name: "Aishah",  amount: 3_000, paid: true },
+  { name: "Wei Jie", amount: 3_000, paid: true },
+  { name: "Razak",   amount: 3_000, paid: false },
+  { name: "Prav",    amount: 3_000, paid: false },
 ];

@@ -14,7 +14,7 @@ export function genericShareMessage(args: {
   link: string;
 }): string {
   const { title, link } = args;
-  return `Kasi kautim — *${title}*. Tap your name to settle.\n${link}`;
+  return `Kasi kautim! *${title}*, tap your name in the link to settle.\n${link}`;
 }
 
 export function privateShareMessage(args: {
@@ -27,7 +27,7 @@ export function privateShareMessage(args: {
   const { name, title, amountCents, link, dueDate } = args;
   const amount = formatMYR(amountCents);
   const dueLine = dueDate ? `\nDue ${dueDate}.` : "";
-  return `Hi ${name}! Your share for *${title}* — ${amount}.${dueLine}\nTap to settle.\n${link}`;
+  return `Hi ${name}! For *${title}*, your share is ${amount}.${dueLine}\nSettle here:\n${link}`;
 }
 
 /**
@@ -42,5 +42,5 @@ export function privateItemModeShareMessage(args: {
 }): string {
   const { name, title, link, dueDate } = args;
   const dueLine = dueDate ? `\nDue ${dueDate}.` : "";
-  return `Hi ${name}! Tap the items you ordered for *${title}* — we'll compute your share automatically.${dueLine}\n${link}`;
+  return `Hi ${name}! Tap what you ordered for *${title}* and we'll work out your share.${dueLine}\n${link}`;
 }

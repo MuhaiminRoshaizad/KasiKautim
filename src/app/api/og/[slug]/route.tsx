@@ -309,7 +309,7 @@ function FallbackFrame() {
           textAlign: "center",
         }}
       >
-        No awkward chasing. Built for Malaysian group chats.
+        The group chat settles itself. Built in Malaysia.
       </div>
     </div>
   );
