@@ -57,6 +57,7 @@ interface EditableItem {
 export function ReceiptScanner({ onScanned }: ReceiptScannerProps) {
   const [state, setState] = useState<ScanReceiptState>(INITIAL);
   const [isPending, startTransition] = useTransition();
+  const [isDragOver, setIsDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (file: File) => {
@@ -94,6 +95,21 @@ export function ReceiptScanner({ onScanned }: ReceiptScannerProps) {
     if (inputRef.current) inputRef.current.value = "";
   };
 
+  // Drag-and-drop handlers — desktop convenience; mobile gets the OS
+  // sheet via tap on the same surface.
+  const handleDragOver = (e: React.DragEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    if (!isPending) setIsDragOver(true);
+  };
+  const handleDragLeave = () => setIsDragOver(false);
+  const handleDrop = (e: React.DragEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (isPending) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFile(file);
+  };
+
   if (state.ok && state.receipt) {
     return (
       <ScanResult
@@ -106,21 +122,7 @@ export function ReceiptScanner({ onScanned }: ReceiptScannerProps) {
   }
 
   return (
-    <div className="border border-dashed border-border bg-surface/60 p-4">
-      <div className="flex items-start gap-3">
-        <Sparkles size={16} className="mt-1 shrink-0 text-ringgit" aria-hidden />
-        <div className="min-w-0 flex-1">
-          <div className="text-xs font-medium uppercase tracking-widest text-foreground-soft">
-            Magical scanner
-          </div>
-          <p className="mt-1 text-sm text-foreground-soft">
-            Snap your restaurant receipt — we auto-fill the title, total, and
-            items using Google Gemini. Edit anything that&apos;s wrong before
-            applying.
-          </p>
-        </div>
-      </div>
-
+    <div>
       {/* No `capture` attribute on purpose — with capture="environment"
           mobile browsers skip the gallery picker entirely and jump
           straight into the camera. Without it, iOS shows a "Photo
@@ -138,30 +140,58 @@ export function ReceiptScanner({ onScanned }: ReceiptScannerProps) {
         }}
       />
 
-      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-        <button
-          type="button"
-          disabled={isPending}
-          onClick={() => inputRef.current?.click()}
-          className={cn(
-            "inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-sm border border-foreground bg-foreground px-4 text-sm font-medium text-paper transition-[color,background-color,transform] duration-150 hover:bg-foreground/90 active:scale-[0.97]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-            "disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100",
-          )}
-        >
-          {isPending ? (
-            <>
-              <Loader2 size={16} aria-hidden className="animate-spin" />
-              Reading receipt...
-            </>
-          ) : (
-            <>
-              <Camera size={16} aria-hidden />
-              Scan a receipt
-            </>
-          )}
-        </button>
-      </div>
+      {/*
+       * Full-panel tap target instead of a small button buried in an
+       * info card. Pattern follows Strava / Linear / Vercel asset-
+       * upload affordances — the entire dashed zone fires the file
+       * picker. Drag-and-drop is wired for desktop convenience; mobile
+       * gets the OS Camera/Library sheet via the same tap.
+       */}
+      <button
+        type="button"
+        disabled={isPending}
+        onClick={() => inputRef.current?.click()}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        aria-label="Scan a receipt"
+        className={cn(
+          "group block w-full rounded-lg border-2 border-dashed bg-surface/60 px-6 py-8 text-left transition-[background-color,border-color,transform] duration-150 sm:py-10",
+          isDragOver
+            ? "border-ringgit bg-ringgit-soft/30"
+            : "border-border hover:border-foreground/40 hover:bg-surface-deep/50 active:scale-[0.99]",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          "disabled:cursor-not-allowed disabled:opacity-70 disabled:active:scale-100",
+        )}
+      >
+        <div className="flex flex-col items-center justify-center gap-3 text-center">
+          <div
+            className={cn(
+              "flex h-14 w-14 items-center justify-center rounded-full border border-border bg-surface text-foreground transition-colors",
+              isDragOver && "border-ringgit text-ringgit",
+            )}
+            aria-hidden
+          >
+            {isPending ? (
+              <Loader2 size={24} className="animate-spin" aria-hidden />
+            ) : (
+              <Camera size={24} aria-hidden />
+            )}
+          </div>
+
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex items-center gap-1.5 font-display text-base uppercase tracking-widest text-foreground">
+              <Sparkles size={14} className="text-ringgit" aria-hidden />
+              {isPending ? "Reading receipt..." : "Scan a receipt"}
+            </div>
+            <p className="text-xs text-foreground-soft sm:text-sm">
+              Snap your restaurant receipt — we auto-fill the title, total,
+              and items using Google Gemini. Edit anything that&apos;s wrong
+              before applying.
+            </p>
+          </div>
+        </div>
+      </button>
 
       {state.ok === false && state.message ? (
         <p role="alert" className="mt-3 text-xs text-stamp">
