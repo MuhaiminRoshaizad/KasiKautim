@@ -86,9 +86,10 @@ export function ItemPicker({
 
   // Realtime: any claim by anyone re-renders the picker via router.refresh().
   // The subscribe callback yields status updates - SUBSCRIBED on success,
-  // CHANNEL_ERROR / TIMED_OUT / CLOSED if a tracker blocker drops the
-  // websocket or the network goes flaky. Flag the failure state so we
-  // can show a banner instead of pretending live updates work.
+  // CHANNEL_ERROR / TIMED_OUT if a tracker blocker drops the websocket
+  // or the network goes flaky. CLOSED is excluded — it also fires on
+  // intentional removeChannel() in cleanup, which would flash the
+  // banner on every navigation.
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
     const channel = supabase
@@ -105,11 +106,7 @@ export function ItemPicker({
       )
       .subscribe((status) => {
         if (status === "SUBSCRIBED") setRealtimeBroken(false);
-        else if (
-          status === "CHANNEL_ERROR" ||
-          status === "TIMED_OUT" ||
-          status === "CLOSED"
-        ) {
+        else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
           setRealtimeBroken(true);
         }
       });

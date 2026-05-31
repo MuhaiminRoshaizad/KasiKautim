@@ -27,10 +27,12 @@ interface BillMemberPayload {
  * router.refresh() so the Server Component re-fetches the bill data and the
  * progress bar + member badges update without a page reload.
  *
- * Subscribe callback handles the failure states (CHANNEL_ERROR / TIMED_OUT
- * / CLOSED) — tracker blockers and corporate VPNs commonly drop the
+ * Subscribe callback handles the failure states (CHANNEL_ERROR /
+ * TIMED_OUT) — tracker blockers and corporate VPNs commonly drop the
  * websocket. Surfacing a toast keeps the organizer from staring at a
- * frozen dashboard thinking their bill stopped updating.
+ * frozen dashboard thinking their bill stopped updating. CLOSED is
+ * deliberately excluded — it also fires on intentional removeChannel()
+ * in cleanup, which would flash the toast on every navigation.
  */
 export function RealtimeBillSubscription({
   billId,
@@ -63,9 +65,7 @@ export function RealtimeBillSubscription({
       )
       .subscribe((status) => {
         if (
-          (status === "CHANNEL_ERROR" ||
-            status === "TIMED_OUT" ||
-            status === "CLOSED") &&
+          (status === "CHANNEL_ERROR" || status === "TIMED_OUT") &&
           !warned
         ) {
           warned = true;

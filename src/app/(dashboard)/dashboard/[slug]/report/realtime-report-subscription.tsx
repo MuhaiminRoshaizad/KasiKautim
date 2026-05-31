@@ -11,9 +11,9 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
  * lands. Both filtered to this bill. Two channels because supabase-js filters
  * are per-event-type (not OR-able across tables).
  *
- * Subscribe callback flags failure states so the user knows the report
- * stopped auto-updating (tracker blocker, VPN, etc.) and can refresh
- * manually rather than trust stale data.
+ * Subscribe callback flags CHANNEL_ERROR / TIMED_OUT so the user knows
+ * the report stopped auto-updating (tracker blocker, VPN, etc.) and can
+ * refresh manually rather than trust stale data.
  */
 export function RealtimeReportSubscription({ billId }: { billId: string }) {
   const router = useRouter();
@@ -44,10 +44,11 @@ export function RealtimeReportSubscription({ billId }: { billId: string }) {
         () => router.refresh(),
       )
       .subscribe((status) => {
+        // CLOSED also fires on intentional removeChannel() in cleanup, so
+        // it would flash the toast on every navigation. CHANNEL_ERROR and
+        // TIMED_OUT are the only unambiguous failure signals.
         if (
-          (status === "CHANNEL_ERROR" ||
-            status === "TIMED_OUT" ||
-            status === "CLOSED") &&
+          (status === "CHANNEL_ERROR" || status === "TIMED_OUT") &&
           !warned
         ) {
           warned = true;
