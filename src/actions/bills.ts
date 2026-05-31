@@ -347,10 +347,24 @@ export async function deleteBill(formData: FormData): Promise<void> {
   }
 
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.from("bills").delete().eq("slug", slug);
+  // Use .select() so we can distinguish "deleted N rows" from "RLS
+  // denied and matched 0 rows" — without this the action silently
+  // "succeeds" for non-organizers because Supabase reports no error.
+  const { data, error } = await supabase
+    .from("bills")
+    .delete()
+    .eq("slug", slug)
+    .select("id");
   if (error) {
     logger.error("deleteBill failed", { code: error.code, message: error.message });
     redirect(`/dashboard/${slug}?error=delete_failed`);
+  }
+  if (!data || data.length === 0) {
+    // Either the slug doesn't exist, the user doesn't own it, or
+    // session expired. Either way the user shouldn't think the bill
+    // was deleted.
+    logger.warn("deleteBill affected 0 rows (RLS denied or stale slug)", { slug });
+    redirect(`/dashboard/${slug}?error=delete_denied`);
   }
 
   revalidatePath("/dashboard");

@@ -26,6 +26,11 @@ interface BillMemberPayload {
  * On a paid=false -> paid=true transition we fire a sonner toast and call
  * router.refresh() so the Server Component re-fetches the bill data and the
  * progress bar + member badges update without a page reload.
+ *
+ * Subscribe callback handles the failure states (CHANNEL_ERROR / TIMED_OUT
+ * / CLOSED) — tracker blockers and corporate VPNs commonly drop the
+ * websocket. Surfacing a toast keeps the organizer from staring at a
+ * frozen dashboard thinking their bill stopped updating.
  */
 export function RealtimeBillSubscription({
   billId,
@@ -34,6 +39,7 @@ export function RealtimeBillSubscription({
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
+    let warned = false;
     const channel = supabase
       .channel(`bill-members:${billId}`)
       .on(
@@ -55,7 +61,21 @@ export function RealtimeBillSubscription({
           }
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (
+          (status === "CHANNEL_ERROR" ||
+            status === "TIMED_OUT" ||
+            status === "CLOSED") &&
+          !warned
+        ) {
+          warned = true;
+          toast.warning("Live updates paused", {
+            description:
+              "Connection blocked or dropped. Refresh to see new payments.",
+            duration: 8000,
+          });
+        }
+      });
 
     return () => {
       void supabase.removeChannel(channel);

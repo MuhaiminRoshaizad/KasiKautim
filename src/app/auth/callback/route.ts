@@ -13,7 +13,21 @@ import { logger } from "@/lib/logger";
 export async function GET(request: NextRequest) {
   const url = request.nextUrl;
   const code = url.searchParams.get("code");
+  const oauthError = url.searchParams.get("error");
   const next = safeNext(url.searchParams.get("next"), url);
+
+  // Google appends `?error=access_denied` (or similar) when the user
+  // hits "Cancel" at the consent screen. Without this branch we'd fall
+  // through to "missing_code", which reads as a confusing system error
+  // when the user simply changed their mind.
+  if (oauthError) {
+    const mapped =
+      oauthError === "access_denied"
+        ? "consent_denied"
+        : "oauth_init_failed";
+    logger.warn("auth callback returned oauth error", { code: oauthError });
+    return NextResponse.redirect(new URL(`/login?error=${mapped}`, url));
+  }
 
   if (!code) {
     return NextResponse.redirect(new URL("/login?error=missing_code", url));

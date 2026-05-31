@@ -17,6 +17,10 @@ const ERROR_COPY: Record<string, string> = {
     "Sign-in didn't complete. Open the link on the same device you started on.",
   missing_code:
     "Sign-in link was missing its code. Try again from scratch.",
+  consent_denied:
+    "Sign-in cancelled. Hit Continue with Google again whenever you're ready.",
+  session_expired:
+    "Your session timed out. Sign back in and pick up where you left off.",
 };
 
 /*

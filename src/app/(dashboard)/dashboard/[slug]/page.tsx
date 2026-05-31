@@ -27,10 +27,25 @@ import { RealtimeBillSubscription } from "./realtime-bill-subscription";
 
 interface BillDetailPageProps {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ error?: string }>;
 }
 
-export default async function BillDetailPage({ params }: BillDetailPageProps) {
+const DELETE_ERROR_COPY: Record<string, string> = {
+  delete_failed:
+    "Couldn't delete the bill. Try again in a sec.",
+  delete_denied:
+    "Couldn't delete this bill — it might have already been removed, or your session expired. Refresh and try again.",
+};
+
+export default async function BillDetailPage({
+  params,
+  searchParams,
+}: BillDetailPageProps) {
   const { slug } = await params;
+  const { error: deleteErrorCode } = await searchParams;
+  const deleteError = deleteErrorCode
+    ? DELETE_ERROR_COPY[deleteErrorCode]
+    : undefined;
   const supabase = await createSupabaseServerClient();
 
   // Single round-trip via Postgres relational join — was two sequential
@@ -86,6 +101,14 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <RealtimeBillSubscription billId={bill.id} />
       <FullyCollectedCelebration billId={bill.id} allPaid={allPaid} />
+      {deleteError ? (
+        <p
+          role="alert"
+          className="border-l-2 border-stamp bg-stamp-soft/30 px-3 py-2 text-sm text-stamp"
+        >
+          {deleteError}
+        </p>
+      ) : null}
       <div className="flex items-center justify-between gap-2">
         <Link
           href="/dashboard"

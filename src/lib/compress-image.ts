@@ -20,6 +20,12 @@ export async function compressImage(file: File): Promise<File> {
   if (typeof document === "undefined") return file;
   if (typeof createImageBitmap !== "function") return file;
 
+  // Wrap the whole pipeline in try/catch: createImageBitmap throws on
+  // unsupported / corrupted formats, canvas.toBlob can OOM on huge
+  // images on low-end Androids, and HEIC support is browser-spotty.
+  // Any failure here falls back to the original file, which sharp on
+  // the server can usually still handle (and the user sees a real
+  // error message instead of an unexplained server-action throw).
   try {
     const bitmap = await createImageBitmap(file);
     const scale = Math.min(1, MAX_EDGE_PX / Math.max(bitmap.width, bitmap.height));
