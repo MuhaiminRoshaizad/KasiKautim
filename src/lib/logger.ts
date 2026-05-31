@@ -62,7 +62,36 @@ function redact(value: unknown, depth = 0): unknown {
 function emit(level: "debug" | "info" | "warn" | "error", args: unknown[]) {
   if (!IS_DEV && level === "debug") return;
   const safe = args.map((a) => redact(a));
-  console[level](...safe);
+
+  // Structured (JSON) output in production so Vercel Observability /
+  // Datadog / Sentry can filter by level / message / op. Dev keeps
+  // human-readable console output so terminal logs stay scannable.
+  if (IS_DEV) {
+    console[level](...safe);
+    return;
+  }
+
+  // Convention: first arg = message string, second arg = context
+  // object. Anything else gets stuffed into an `extra` array.
+  const [first, ...rest] = safe;
+  const message = typeof first === "string" ? first : String(first ?? "");
+  const context =
+    rest.length === 1 &&
+    typeof rest[0] === "object" &&
+    rest[0] !== null &&
+    !Array.isArray(rest[0])
+      ? (rest[0] as Record<string, unknown>)
+      : rest.length > 0
+        ? { extra: rest }
+        : {};
+
+  const record = {
+    level,
+    timestamp: new Date().toISOString(),
+    message,
+    ...context,
+  };
+  console[level](JSON.stringify(record));
 }
 
 export const logger = {

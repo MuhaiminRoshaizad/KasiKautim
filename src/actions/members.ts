@@ -211,11 +211,22 @@ export async function unclaimMember(
 
 /**
  * Server-side fire-and-await (cheap) view-touch from /b/[slug]?m=token.
- * No state returned — caller doesn't block on errors.
+ * No state returned — caller doesn't block on errors. We do log
+ * failures so a chronic outage shows up in the dashboard (used to
+ * silently swallow, which would have explained "they never opened
+ * the link" support tickets that were really RPC outages).
  */
 export async function touchMemberViewed(token: string): Promise<void> {
   const parsed = MarkPaidSchema.safeParse({ token });
   if (!parsed.success) return;
   const supabase = await createSupabaseServerClient();
-  await supabase.rpc("touch_member_viewed", { p_token: parsed.data.token });
+  const { error } = await supabase.rpc("touch_member_viewed", {
+    p_token: parsed.data.token,
+  });
+  if (error) {
+    logger.warn("touch_member_viewed rpc failed", {
+      code: error.code,
+      message: error.message,
+    });
+  }
 }

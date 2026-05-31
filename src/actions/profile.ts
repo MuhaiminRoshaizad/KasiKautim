@@ -33,7 +33,7 @@ export async function updateProfile(
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    return { ok: false, message: "You're not signed in." };
+    redirect("/login?error=session_expired");
   }
 
   // Empty string → null in DB so the field reads as unset on /b/[slug].
@@ -94,7 +94,7 @@ export async function completeOnboarding(
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    return { ok: false, message: "You're not signed in." };
+    redirect("/login?error=session_expired");
   }
 
   const { error } = await supabase

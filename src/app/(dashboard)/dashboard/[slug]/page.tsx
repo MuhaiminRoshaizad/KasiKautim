@@ -27,7 +27,7 @@ import { RealtimeBillSubscription } from "./realtime-bill-subscription";
 
 interface BillDetailPageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; warning?: string }>;
 }
 
 const DELETE_ERROR_COPY: Record<string, string> = {
@@ -37,15 +37,21 @@ const DELETE_ERROR_COPY: Record<string, string> = {
     "Couldn't delete this bill — it might have already been removed, or your session expired. Refresh and try again.",
 };
 
+const WARNING_COPY: Record<string, string> = {
+  share_pending:
+    "Your share didn't compute on the first try. It'll settle the moment anyone interacts with this bill (or you can refresh).",
+};
+
 export default async function BillDetailPage({
   params,
   searchParams,
 }: BillDetailPageProps) {
   const { slug } = await params;
-  const { error: deleteErrorCode } = await searchParams;
+  const { error: deleteErrorCode, warning: warningCode } = await searchParams;
   const deleteError = deleteErrorCode
     ? DELETE_ERROR_COPY[deleteErrorCode]
     : undefined;
+  const warning = warningCode ? WARNING_COPY[warningCode] : undefined;
   const supabase = await createSupabaseServerClient();
 
   // Single round-trip via Postgres relational join — was two sequential
@@ -107,6 +113,14 @@ export default async function BillDetailPage({
           className="border-l-2 border-stamp bg-stamp-soft/30 px-3 py-2 text-sm text-stamp"
         >
           {deleteError}
+        </p>
+      ) : null}
+      {warning ? (
+        <p
+          role="status"
+          className="border-l-2 border-highlighter bg-highlighter/10 px-3 py-2 text-sm text-foreground-soft"
+        >
+          {warning}
         </p>
       ) : null}
       <div className="flex items-center justify-between gap-2">

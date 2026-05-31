@@ -248,6 +248,10 @@ export async function scanReceipt(
   if (!user) {
     return { ok: false, message: "Sign in to use the scanner." };
   }
+  // Note: not redirecting here because the scanner triggers from
+  // inside the create-bill form mid-session - bouncing to /login
+  // would lose all the form state. The inline message is enough
+  // to prompt a tab switch + back.
 
   // Per-user daily quota — Gemini's free tier cap (1500/day) is project-
   // wide, so without this any one user can DoS the scanner for everyone.

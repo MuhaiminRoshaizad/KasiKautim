@@ -199,7 +199,10 @@ export async function createBill(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return { ok: false, message: "You're not signed in." };
+    // Session expired mid-submit. Send the user to /login with the
+    // session_expired ERROR_COPY key so they understand what happened
+    // and can sign back in.
+    redirect("/login?error=session_expired");
   }
 
   // Need the organizer's display_name when includeMyself is on, so we
@@ -220,6 +223,10 @@ export async function createBill(
   }
 
   let slug: string;
+  // Tracks whether the organizer-share recompute fell over. Surfaced
+  // on the bill detail page as a soft banner so the organizer knows
+  // their share might read stale until a recipient interacts.
+  let recomputeFailed = false;
   try {
     slug = await withSlugRetry(async (candidate) => {
       const { data, error } = await supabase
@@ -309,7 +316,9 @@ export async function createBill(
       // and paid_amount get filled in from the actual claim state via
       // the same SQL the rest of the app uses. Errors here aren't
       // fatal — the row is inserted; the next toggle_item_claim from
-      // any recipient will recompute anyway. Logged just in case.
+      // any recipient will recompute anyway. Logged + surfaced as a
+      // warning banner on the bill page so the organizer knows their
+      // share might read stale until the first recipient interacts.
       if (splitMode === "item" && myClaimedItemIds.length > 0) {
         const { error: recomputeError } = await supabase.rpc(
           "_recompute_item_shares",
@@ -320,6 +329,7 @@ export async function createBill(
             code: recomputeError.code,
             message: recomputeError.message,
           });
+          recomputeFailed = true;
         }
       }
     }
@@ -328,7 +338,11 @@ export async function createBill(
   }
 
   revalidatePath("/dashboard");
-  redirect(`/dashboard/${slug}`);
+  redirect(
+    recomputeFailed
+      ? `/dashboard/${slug}?warning=share_pending`
+      : `/dashboard/${slug}`,
+  );
 }
 
 /*
