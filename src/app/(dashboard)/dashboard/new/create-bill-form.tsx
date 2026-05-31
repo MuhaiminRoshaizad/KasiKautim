@@ -9,6 +9,7 @@ import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 
 import { AmountDisplay } from "@/components/amount-display";
 import { Button, buttonClassName } from "@/components/button";
+import { CurrencyInput } from "@/components/currency-input";
 import { ReceiptCard, ReceiptDivider } from "@/components/receipt-card";
 import { cn } from "@/lib/cn";
 import { fromCents, toCents } from "@/lib/money";
@@ -42,6 +43,14 @@ interface EditableItem {
 }
 
 type SplitMode = "equal" | "item";
+
+// Adapter helpers that bridge the existing string-based RHF + local
+// state (used by toCents() at submit time) and the cents-based
+// <CurrencyInput> component. Keeps the form schema unchanged.
+const centsToPriceString = (cents: number): string => {
+  if (cents <= 0) return "";
+  return fromCents(cents).toFixed(2);
+};
 
 const parsePriceToCents = (raw: string): number => {
   if (!raw || raw.trim() === "") return 0;
@@ -276,14 +285,18 @@ export function CreateBillFormIsland() {
                   <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-sm text-foreground-faint">
                     RM
                   </span>
-                  <input
-                    {...register("total")}
-                    type="text"
-                    inputMode="decimal"
-                    autoComplete="off"
-                    placeholder="120.00"
-                    className={cn(FIELD_INPUT, "pl-12 font-mono tabular")}
-                    disabled={pending}
+                  <Controller
+                    control={control}
+                    name="total"
+                    render={({ field }) => (
+                      <CurrencyInput
+                        value={parsePriceToCents(field.value ?? "")}
+                        onChange={(c) => field.onChange(centsToPriceString(c))}
+                        placeholder="120.00"
+                        disabled={pending}
+                        className={cn(FIELD_INPUT, "pl-12 font-mono")}
+                      />
+                    )}
                   />
                 </div>
               }
@@ -564,13 +577,6 @@ function ItemModeFields({
       { id: newItemId(), name: "", price: "" },
     ]);
 
-  const handlePriceInput = (
-    raw: string,
-    setter: (s: string) => void,
-  ) => {
-    if (PRICE_PATTERN.test(raw)) setter(raw);
-  };
-
   return (
     <div className="space-y-3 border border-border bg-surface/60 p-4">
       <div className="flex items-baseline justify-between">
@@ -601,14 +607,12 @@ function ItemModeFields({
                 aria-label="Item name"
               />
               <span className="text-foreground-faint">RM</span>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={it.price}
-                onChange={(e) => updateItem(it.id, { price: e.target.value })}
+              <CurrencyInput
+                value={parsePriceToCents(it.price)}
+                onChange={(c) => updateItem(it.id, { price: centsToPriceString(c) })}
                 placeholder="0.00"
                 disabled={disabled}
-                className="w-20 border border-transparent bg-surface px-2 py-1.5 text-right tabular text-foreground placeholder:text-foreground-faint hover:border-border focus:border-foreground focus:outline-none"
+                className="w-20 border border-transparent bg-surface px-2 py-1.5 text-foreground placeholder:text-foreground-faint hover:border-border focus:border-foreground focus:outline-none"
                 aria-label={`Price of ${it.name || "item"}`}
               />
               <button
@@ -642,28 +646,24 @@ function ItemModeFields({
           <span className="text-[11px] font-medium uppercase tracking-widest text-foreground-soft">
             Tax / service (RM)
           </span>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={taxString}
-            onChange={(e) => handlePriceInput(e.target.value, setTaxString)}
+          <CurrencyInput
+            value={parsePriceToCents(taxString)}
+            onChange={(c) => setTaxString(centsToPriceString(c))}
             disabled={disabled}
             placeholder="0.00"
-            className={cn(FIELD_INPUT, "font-mono tabular text-right")}
+            className={cn(FIELD_INPUT, "font-mono")}
           />
         </label>
         <label className="flex flex-col gap-1.5">
           <span className="text-[11px] font-medium uppercase tracking-widest text-foreground-soft">
             Discount (RM)
           </span>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={discountString}
-            onChange={(e) => handlePriceInput(e.target.value, setDiscountString)}
+          <CurrencyInput
+            value={parsePriceToCents(discountString)}
+            onChange={(c) => setDiscountString(centsToPriceString(c))}
             disabled={disabled}
             placeholder="0.00"
-            className={cn(FIELD_INPUT, "font-mono tabular text-right")}
+            className={cn(FIELD_INPUT, "font-mono")}
           />
         </label>
       </div>

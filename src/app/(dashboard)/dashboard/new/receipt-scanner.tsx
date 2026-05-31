@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { AmountDisplay } from "@/components/amount-display";
+import { CurrencyInput } from "@/components/currency-input";
 import { ReceiptDivider } from "@/components/receipt-card";
 import { cn } from "@/lib/cn";
 import { compressImage } from "@/lib/compress-image";
@@ -34,6 +35,18 @@ const newItemId = customAlphabet(
   "0123456789abcdefghijklmnopqrstuvwxyz",
   10,
 );
+
+// Adapters bridging the editable-string state to the cents-based
+// <CurrencyInput>. Mirror the helpers in create-bill-form.tsx so the
+// integration shape is consistent across all money inputs.
+const scanPriceToCents = (raw: string): number => {
+  if (!raw || raw.trim() === "") return 0;
+  try { return toCents(raw); } catch { return 0; }
+};
+const centsToScanPrice = (cents: number): string => {
+  if (cents <= 0) return "";
+  return fromCents(cents).toFixed(2);
+};
 
 export interface ScannerApplyPayload {
   title: string;
@@ -356,13 +369,11 @@ function ScanResult({ receipt, onClear, onRescan, onApply }: ScanResultProps) {
               aria-label="Item name"
             />
             <span className="text-foreground-faint">{currency}</span>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={it.price}
-              onChange={(e) => updateItem(it.id, { price: e.target.value })}
+            <CurrencyInput
+              value={scanPriceToCents(it.price)}
+              onChange={(c) => updateItem(it.id, { price: centsToScanPrice(c) })}
               placeholder="0.00"
-              className="w-16 border border-transparent bg-transparent px-1 py-0.5 text-right text-base tabular text-foreground placeholder:text-foreground-faint hover:border-border focus:border-foreground focus:bg-surface focus:outline-none sm:text-xs"
+              className="w-16 border border-transparent bg-transparent px-1 py-0.5 text-base text-foreground placeholder:text-foreground-faint hover:border-border focus:border-foreground focus:bg-surface focus:outline-none sm:text-xs"
               aria-label={`Price of ${it.name || "item"}`}
             />
             <button
@@ -406,16 +417,12 @@ function ScanResult({ receipt, onClear, onRescan, onApply }: ScanResultProps) {
         </span>
         <div className="flex flex-1 items-center justify-end gap-2">
           <span className="font-mono text-xs text-foreground-faint">{currency}</span>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={total}
-            onChange={(e) => {
-              if (PRICE_PATTERN.test(e.target.value)) setTotal(e.target.value);
-            }}
+          <CurrencyInput
+            value={scanPriceToCents(total)}
+            onChange={(c) => setTotal(centsToScanPrice(c))}
             // text-base mobile, text-sm desktop - same iOS zoom guard as
             // the rest of the inputs in this panel.
-            className="w-20 border border-border bg-surface px-2 py-1 text-right font-mono text-base tabular text-foreground focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 focus:ring-offset-background sm:text-sm"
+            className="w-20 border border-border bg-surface px-2 py-1 font-mono text-base text-foreground focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 focus:ring-offset-background sm:text-sm"
             aria-label="Total"
           />
         </div>

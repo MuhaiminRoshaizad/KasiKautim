@@ -3,8 +3,10 @@
 import { useMemo } from "react";
 import { Plus, Trash2 } from "lucide-react";
 
+import { CurrencyInput } from "@/components/currency-input";
 import { cn } from "@/lib/cn";
 import { LIMITS } from "@/lib/constants";
+import { fromCents, toCents } from "@/lib/money";
 
 interface MembersRowInputProps {
   value: string;
@@ -23,7 +25,17 @@ interface Row {
 const SEPARATORS = /[,\n]+/;
 const AMOUNT_TAIL = /^(.+?)\s+(\d+(?:\.\d{1,2})?)$/;
 
-const DECIMAL_PATTERN = /^\d*(\.\d{0,2})?$/;
+// Bridge between the row's string-amount representation (used in the
+// serialised members string consumed by parseMembers) and the cents-
+// based <CurrencyInput>.
+const amountStringToCents = (raw: string): number => {
+  if (!raw || raw.trim() === "") return 0;
+  try { return toCents(raw); } catch { return 0; }
+};
+const centsToAmountString = (cents: number): string => {
+  if (cents <= 0) return "";
+  return fromCents(cents).toFixed(2);
+};
 
 /*
  * Splitwise-style row layout for adding the squad. Each row is one
@@ -93,12 +105,6 @@ export function MembersRowInput({
     onChange(serialize([...rows, { name: "", amount: "" }]));
   };
 
-  const handleAmountInput = (i: number, raw: string) => {
-    if (raw === "" || DECIMAL_PATTERN.test(raw)) {
-      updateRow(i, { amount: raw });
-    }
-  };
-
   // Show all the user's rows + one always-empty row at the bottom for
   // quick typing without first hitting "Add a row".
   const displayRows: Row[] = [...rows, { name: "", amount: "" }];
@@ -157,14 +163,14 @@ export function MembersRowInput({
               {showAmount ? (
                 <>
                   <span className="shrink-0 text-foreground-faint">RM</span>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={row.amount}
-                    onChange={(e) => handleAmountInput(i, e.target.value)}
+                  <CurrencyInput
+                    value={amountStringToCents(row.amount)}
+                    onChange={(c) =>
+                      updateRow(i, { amount: centsToAmountString(c) })
+                    }
                     disabled={disabled || isTrailing}
                     placeholder="—"
-                    className="w-20 shrink-0 border border-transparent bg-surface px-2 py-1.5 text-right tabular text-foreground placeholder:text-foreground-faint hover:border-border focus:border-foreground focus:outline-none disabled:bg-transparent"
+                    className="w-20 shrink-0 border border-transparent bg-surface px-2 py-1.5 text-foreground placeholder:text-foreground-faint hover:border-border focus:border-foreground focus:outline-none disabled:bg-transparent"
                     aria-label={`Member ${i + 1} custom amount`}
                   />
                 </>
