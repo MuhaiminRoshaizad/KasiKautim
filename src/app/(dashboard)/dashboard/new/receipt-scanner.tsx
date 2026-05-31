@@ -209,6 +209,11 @@ export function ReceiptScanner({ onScanned }: ReceiptScannerProps) {
       {state.ok === false && state.message ? (
         <p role="alert" className="mt-3 text-xs text-stamp">
           {state.message}
+          {state.ref ? (
+            <span className="ml-1 font-mono text-foreground-faint">
+              · Ref {state.ref}
+            </span>
+          ) : null}
         </p>
       ) : null}
     </div>
