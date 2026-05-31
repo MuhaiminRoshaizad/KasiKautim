@@ -98,35 +98,29 @@ export function DeleteBillPanel({ slug, title }: DeleteBillPanelProps) {
             uploaded proof images stay in Storage.
           </p>
 
-          <p className="mt-4 text-xs text-foreground-soft">
-            Type the bill title to confirm:
-          </p>
-          <input
-            type="text"
-            value={typed}
-            onChange={(e) => setTyped(e.target.value)}
-            placeholder={title}
-            // text-base on mobile dodges iOS zoom; rounded-lg + ring-
-            // foreground brings this in line with every other input
-            // in the app (was sharp-cornered + ring-stamp, the only
-            // input using the destructive ring colour).
-            className="mt-1 h-11 w-full rounded-lg border border-border bg-paper px-3 font-mono text-base text-foreground placeholder:text-foreground-faint focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 focus:ring-offset-background sm:text-sm"
-          />
-
-          <form action={deleteBill} className="mt-6 grid grid-cols-2 gap-2">
+          {/*
+           * Input + buttons inside one form so useFormStatus inside
+           * the children can lock everything while the action is in
+           * flight (otherwise the user could edit the typed name
+           * mid-submit and invalidate the canDelete gate). Layout-
+           * wise the same: confirm input on top, two-button grid below.
+           */}
+          <form action={deleteBill}>
             <input type="hidden" name="slug" value={slug} />
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className={buttonClassName({
-                variant: "secondary",
-                size: "md",
-                className: "w-full",
-              })}
-            >
-              Cancel
-            </button>
-            <DeleteSubmit canDelete={canDelete} />
+
+            <p className="mt-4 text-xs text-foreground-soft">
+              Type the bill title to confirm:
+            </p>
+            <DeleteConfirmInput
+              value={typed}
+              onChange={setTyped}
+              placeholder={title}
+            />
+
+            <div className="mt-6 grid grid-cols-2 gap-2">
+              <DeleteCancel onCancel={() => setOpen(false)} />
+              <DeleteSubmit canDelete={canDelete} />
+            </div>
           </form>
         </div>
       </dialog>
@@ -147,6 +141,57 @@ function DeleteSubmit({ canDelete }: { canDelete: boolean }) {
       })}
     >
       {pending ? "Deleting..." : "Delete forever"}
+    </button>
+  );
+}
+
+/*
+ * Confirm input lives inside the <form> now so useFormStatus can
+ * disable it during submit. Without this, typing into the input after
+ * pressing Delete could change the canDelete gate state mid-action
+ * and produce inconsistent UI.
+ */
+function DeleteConfirmInput({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  placeholder: string;
+}) {
+  const { pending } = useFormStatus();
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      disabled={pending}
+      className="mt-1 h-11 w-full rounded-lg border border-border bg-paper px-3 font-mono text-base text-foreground placeholder:text-foreground-faint focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2 focus:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
+    />
+  );
+}
+
+/*
+ * Same useFormStatus lock as the SignOut cancel button - prevents
+ * the user from dismissing the dialog mid-submit and ending up
+ * confused when the action completes anyway.
+ */
+function DeleteCancel({ onCancel }: { onCancel: () => void }) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="button"
+      onClick={onCancel}
+      disabled={pending}
+      className={buttonClassName({
+        variant: "secondary",
+        size: "md",
+        className: "w-full",
+      })}
+    >
+      Cancel
     </button>
   );
 }

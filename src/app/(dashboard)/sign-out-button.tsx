@@ -71,17 +71,7 @@ export function SignOutButton({ iconButtonClassName }: { iconButtonClassName: st
           </p>
 
           <form action={signOut} className="mt-6 grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className={buttonClassName({
-                variant: "secondary",
-                size: "md",
-                className: "w-full",
-              })}
-            >
-              Cancel
-            </button>
+            <SignOutCancel onCancel={() => setOpen(false)} />
             <SignOutSubmit />
           </form>
         </div>
@@ -104,6 +94,30 @@ function SignOutSubmit() {
       )}
     >
       {pending ? "Signing out..." : "Sign out"}
+    </button>
+  );
+}
+
+/*
+ * Lives inside the <form> so useFormStatus can read the submit state.
+ * Without this, the Cancel button would still close the dialog
+ * mid-submit and leave the action running silently in the background -
+ * user sees the landing redirect a moment later and wonders why.
+ */
+function SignOutCancel({ onCancel }: { onCancel: () => void }) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="button"
+      onClick={onCancel}
+      disabled={pending}
+      className={buttonClassName({
+        variant: "secondary",
+        size: "md",
+        className: "w-full",
+      })}
+    >
+      Cancel
     </button>
   );
 }
